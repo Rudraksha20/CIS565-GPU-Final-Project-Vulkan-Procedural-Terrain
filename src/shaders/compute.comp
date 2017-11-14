@@ -1,0 +1,144 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define DISTANCE_BUCKETS 8
+#define MAX_DISTANCE 65.0
+
+#define WIND_TO_COLOR_FACTOR 0.03
+#define WIND_X 0
+#define WIND_Y 1
+#define WIND_Z 2
+#define WIND_RADIAL 3
+#define WIND_CIRCLE 4
+#define WIND_XZ 5
+#define WIND_CONST 6
+#define WIND_TEXT 7
+
+#define WIND_TYPE WIND_XZ
+
+#define WIND_CIRCLE_RADIUS 5.0
+
+#define USE_CUSTOM_COLOR 1
+
+#define ORIENTATION_CULL 1
+#define FRUSTUM_CULL 1
+#define DISTANCE_CULL 1
+
+#define WORKGROUP_SIZE 32
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+// based on: https://stackoverflow.com/questions/37056159/using-different-push-constants-in-different-shader-stages
+layout(push_constant) uniform s_pushConstants {
+    int numBlades;
+} pushConstants;
+
+layout(set = 0, binding = 0) uniform CameraBufferObject {
+    mat4 view;
+    mat4 proj;
+} camera;
+
+layout(set = 1, binding = 0) uniform Time {
+    float deltaTime;
+    float totalTime;
+};
+
+struct Blade {
+    vec4 v0;
+    vec4 v1;
+    vec4 v2;
+    vec4 up;
+	vec4 color;
+};
+
+// TODO: Add bindings to:
+// 1. Store the input blades
+// 2. Write out the culled blades
+// 3. Write the total number of blades remaining
+
+// The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
+// This is sort of an advanced feature so we've showed you what this buffer should look like
+//
+// layout(set = ???, binding = ???) buffer NumBlades {
+// 	  uint vertexCount;   // Write the number of blades remaining here
+// 	  uint instanceCount; // = 1
+// 	  uint firstVertex;   // = 0
+// 	  uint firstInstance; // = 0
+// } numBlades;
+
+layout(set = 2, binding = 0) buffer InputBlades {
+ 	 Blade inputBlades[];
+};
+
+//output
+layout(set = 2, binding = 1) buffer CulledBlades {
+ 	Blade culledBlades[];
+};
+
+layout(set = 2, binding = 2) buffer NumBlades {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+ 	  uint firstInstance; // = 0
+} numBlades;
+
+bool inBounds(float value, float bounds) {
+    return (value >= -bounds) && (value <= bounds);
+}
+
+#if WIND_TYPE == WIND_TEXT
+#define WIND_TEXT_MAX_DISTANCE 0.7
+// I derived this while waiting for food at Wawa. Hopefully it is good enough
+// segA : one end of line segment
+// segB : other end
+vec3 getWindFromLineSegment(vec3 p, vec3 segA, vec3 segB) {
+	vec3 pA = segA - p;
+	vec3 pB = segB - p;
+	vec3 AB = normalize(segB - segA);
+	float dotABpA = dot(AB, pA);
+	float dotABpB = dot(AB, pB);
+	// check if p's "projection" is on the line segment
+	if (sign(dotABpA) == sign(dotABpB)) {
+		// in this case, it is not, so return no wind
+		return vec3(0.0);
+	}
+	
+	// compute h, height of triangle defined by p, segA, segB, relative to p
+	// to do this, compute l, leg of right triangle defined by h, pA
+	//AB = normalize(AB);
+	// equivalent to: ||AB|| ||pA|| cos(x) * AB
+	//                   1   ||pA|| cos(x) * AB
+	//                       ||l||         * AB
+	vec3 l = dotABpA * AB; 
+	vec3 h = pA - l;
+	float dist = length(h);
+	if (dist > WIND_TEXT_MAX_DISTANCE) {
+		return vec3(0.0);
+	}
+	vec3 dir = -normalize(h);
+	return dir * (1.0 - dist / WIND_TEXT_MAX_DISTANCE);
+}
+#endif
+
+void main() {
+	// Reset the number of blades to 0
+	if (gl_GlobalInvocationID.x == 0) {
+		numBlades.vertexCount = 0;
+	}
+	barrier(); // Wait till all threads reach this point
+
+	// TODO: push constant???
+	if (gl_GlobalInvocationID.x >= pushConstants.numBlades) {
+		return;
+	}
+
+    // TODO: Apply forces on every blade and update the vertices in the buffer
+	Blade blade = inputBlades[gl_GlobalInvocationID.x];
+
+	// store tesselation level in v1 for now
+	blade.v1 = vec4(500.0);
+	
+	uint idx = atomicAdd(numBlades.vertexCount, 1);
+	culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
+	
+
+}
