@@ -21,7 +21,8 @@ Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Mode
         float z = (float)(i / 4) * planeDim - 2 * planeDim;
         float direction = generateRandomFloat() * 2.f * 3.14159265f;
         glm::vec3 bladePosition(x, y, z);
-        currentBlade.v0 = glm::vec4(bladePosition, direction);
+        //currentBlade.v0 = glm::vec4(bladePosition, direction);
+        currentBlade.v0 = glm::vec4(bladePosition, planeDim);
 
         // Bezier point and height (v1)
         float height = MIN_HEIGHT + (generateRandomFloat() * (MAX_HEIGHT - MIN_HEIGHT));
