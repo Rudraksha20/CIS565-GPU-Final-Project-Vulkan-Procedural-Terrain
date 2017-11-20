@@ -1,6 +1,9 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#define MIN_TESS_LEVEL 25.0
+#define MAX_TESS_LEVEL 250.0
+
 #define DISTANCE_BUCKETS 8
 #define MAX_DISTANCE 65.0
 
@@ -120,6 +123,27 @@ vec3 getWindFromLineSegment(vec3 p, vec3 segA, vec3 segB) {
 }
 #endif
 
+float getTesselationLevel(float dist) {
+#if 1
+	if (dist >= 1.0) {
+		return MAX_TESS_LEVEL;
+	}
+	else if (dist > 0.9) {
+		return MIN_TESS_LEVEL + (MAX_TESS_LEVEL - MIN_TESS_LEVEL) * floor((1.0 - dist) / 0.1 / 9.0) * 9.0;	
+	}
+	else {
+		return MAX_TESS_LEVEL;	
+	}
+#else
+	if (dist > 0.999) {
+		return 5.0;
+	}
+	else {
+		return 50.0;	
+	}
+#endif
+}
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
@@ -138,9 +162,55 @@ void main() {
 	// Update the position of the terrain points based on the movement of the camera
 	blade.v0.x += camera.cameraPos.x;
 	blade.v0.z += camera.cameraPos.z;
+	// TODO: tile-level culling
+
+	mat4 viewProj = camera.proj * camera.view;
+	const float tileDim = blade.v0.w;
+	const vec4 tileCorner = vec4(blade.v0.xyz, 1.0);
+	// left edge
+	vec4 mid = tileCorner;
+	mid.z += tileDim * 0.5;
+
+	vec4 projMid = viewProj * mid;
+	float dist = projMid.z / projMid.w;
 
 	// store tesselation level in v1 for now
-	blade.v1 = vec4(500.0);
+	//blade.v1 = vec4(500.0);
+	blade.v1.x = getTesselationLevel(dist);
+	//	blade.v1 = vec4(max(1.0, ceil(500.0 * (0.10 + 0.90 * (1.0 - dist * dist)))));
+
+	// top edge
+	mid = tileCorner;
+	mid.x += tileDim * 0.5;
+	mid.z += tileDim;
+
+	projMid = viewProj * mid;
+	dist = projMid.z / projMid.w;
+
+	// store tesselation level in v1 for now
+	blade.v1.w = getTesselationLevel(dist);
+
+	// right edge
+	mid = tileCorner;
+	mid.x += tileDim;
+	mid.z += tileDim * 0.5;
+
+	projMid = viewProj * mid;
+	dist = projMid.z / projMid.w;
+
+	// store tesselation level in v1 for now
+	blade.v1.z = getTesselationLevel(dist);
+	
+	// bottom edge
+	mid = tileCorner;
+	mid.x += tileDim * 0.5;
+
+	projMid = viewProj * mid;
+	dist = projMid.z / projMid.w;
+
+	// store tesselation level in v1 for now
+	blade.v1.y = getTesselationLevel(dist);
+
 	
 	uint idx = atomicAdd(numBlades.vertexCount, 1);
 	culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
