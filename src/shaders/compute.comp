@@ -144,6 +144,4 @@ void main() {
 	
 	uint idx = atomicAdd(numBlades.vertexCount, 1);
 	culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
-	
-
 }
