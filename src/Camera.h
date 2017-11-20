@@ -29,6 +29,8 @@ public:
     ~Camera();
 
     VkBuffer GetBuffer() const;
+
+    const CameraBufferObject& GetCBO();
     
     void UpdateOrbit(float deltaX, float deltaY, float deltaZ);
 	void PanCamera(float deltaX, float deltaY, float deltaZ);

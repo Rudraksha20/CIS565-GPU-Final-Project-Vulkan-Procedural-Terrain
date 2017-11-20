@@ -1,4 +1,5 @@
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include "Instance.h"
 #include "Window.h"
 #include "Renderer.h"
@@ -41,7 +42,7 @@ namespace {
 		if (key == GLFW_KEY_A) {
 			if (action == GLFW_PRESS) {
 				keyPressedA = true;
-				previousPosX = -1 * stepSize;
+				previousPosX = -1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedA = false;
@@ -50,7 +51,7 @@ namespace {
 		} else if (key == GLFW_KEY_S) {
 			if (action == GLFW_PRESS) {
 				keyPressedS = true;
-				previousPosZ = 1 * stepSize;
+				previousPosZ = 1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedS = false;
@@ -59,7 +60,7 @@ namespace {
 		} else if (key == GLFW_KEY_D) {
 			if (action == GLFW_PRESS) {
 				keyPressedD = true;
-				previousPosX = 1 * stepSize;
+				previousPosX = 1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedD = false;
@@ -68,7 +69,7 @@ namespace {
 		} else if (key == GLFW_KEY_W) {
 			if (action == GLFW_PRESS) {
 				keyPressedW = true;
-				previousPosZ = -1 * stepSize;
+				previousPosZ = -1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedW = false;
@@ -77,7 +78,7 @@ namespace {
 		} else if (key == GLFW_KEY_Q) {
 			if (action == GLFW_PRESS) {
 				keyPressedQ = true;
-				previousPosY = -1 * stepSize;
+				previousPosY = -1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedQ = false;
@@ -86,7 +87,7 @@ namespace {
 		} else if (key == GLFW_KEY_E) {
 			if (action == GLFW_PRESS) {
 				keyPressedE = true;
-				previousPosY = 1 * stepSize;
+				previousPosY = 1;
 			}
 			else if (action == GLFW_RELEASE) {
 				keyPressedE = false;
@@ -95,7 +96,15 @@ namespace {
 		}
 
 		if (keyPressedA || keyPressedS || keyPressedD || keyPressedW || keyPressedQ || keyPressedE) {
-			camera->PanCamera(previousPosX, previousPosY, previousPosZ);
+            glm::mat4 invView = glm::inverse(camera->GetCBO().viewMatrix);
+            glm::vec4 forward = invView * glm::vec4(0.0f, 0.0f, 1.0f, 0.0);
+            forward.y = 0.0f;
+            forward = glm::normalize(forward);
+            glm::vec4 right = invView * glm::vec4(1.0f, 0.0f, 0.0f, 0.0);
+            glm::vec4 up = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+            glm::vec3 dir = glm::vec3((float)previousPosX * right + (float)previousPosY * up + (float)previousPosZ * forward) * stepSize;
+            //dir = glm::vec3(camera->GetCBO().viewMatrix * glm::vec4(dir, 0.0f));
+			camera->PanCamera(dir.x, dir.y, dir.z);
 			camera->UpdateOrbit(0.0f, 0.0f, 0.0f);
 		}
 	}

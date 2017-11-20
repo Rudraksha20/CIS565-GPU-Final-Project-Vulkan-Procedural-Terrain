@@ -85,6 +85,10 @@ void Camera::PanCamera(float deltaX, float deltaY, float deltaZ) {
 	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
+const CameraBufferObject& Camera::GetCBO() {
+    return cameraBufferObject;
+}
+
 Camera::~Camera() {
   vkUnmapMemory(device->GetVkDevice(), bufferMemory);
   vkDestroyBuffer(device->GetVkDevice(), buffer, nullptr);
