@@ -159,13 +159,17 @@ void main() {
     // TODO: Apply forces on every blade and update the vertices in the buffer
 	Blade blade = inputBlades[gl_GlobalInvocationID.x];
 
+	const float tileDim = blade.v0.w;
+
 	// Update the position of the terrain points based on the movement of the camera
-	blade.v0.x += camera.cameraPos.x;
-	blade.v0.z += camera.cameraPos.z;
+	vec4 eyePos = inverse(camera.view) * vec4(0, 0, 0, 1);
+
+	blade.v0.x += floor(eyePos.x / tileDim) * tileDim;
+	blade.v0.z += floor(eyePos.z / tileDim) * tileDim;
 	// TODO: tile-level culling
 
 	mat4 viewProj = camera.proj * camera.view;
-	const float tileDim = blade.v0.w;
+	
 	const vec4 tileCorner = vec4(blade.v0.xyz, 1.0);
 	// left edge
 	vec4 mid = tileCorner;
