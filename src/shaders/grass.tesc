@@ -55,7 +55,7 @@ void main() {
     gl_TessLevelInner[0] = ceil((tese_v1.y + tese_v1.w) * 0.5); // 1 horizontal slice
     gl_TessLevelInner[1] = ceil((tese_v1.x + tese_v1.z) * 0.5); // 4 vertical slices
     gl_TessLevelOuter[0] = tese_v1.x; // left edge: 4 slices
-    gl_TessLevelOuter[1] = tese_v1.y; // top edge: 1 slice
+    gl_TessLevelOuter[1] = tese_v1.y; // bottom edge: 1 slice
     gl_TessLevelOuter[2] = tese_v1.z; // right edge: 4 slices
-    gl_TessLevelOuter[3] = tese_v1.w; // bottom edge: 1 slices
+    gl_TessLevelOuter[3] = tese_v1.w; // top edge: 1 slices
 }
