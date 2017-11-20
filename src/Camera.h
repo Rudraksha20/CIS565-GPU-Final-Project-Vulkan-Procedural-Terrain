@@ -7,6 +7,7 @@
 struct CameraBufferObject {
   glm::mat4 viewMatrix;
   glm::mat4 projectionMatrix;
+  glm::vec3 cameraPos;
 };
 
 class Camera {
@@ -21,6 +22,7 @@ private:
     void* mappedData;
 
     float r, theta, phi;
+	glm::vec3 cameraRefPos;
 
 public:
     Camera(Device* device, float aspectRatio);
@@ -29,4 +31,5 @@ public:
     VkBuffer GetBuffer() const;
     
     void UpdateOrbit(float deltaX, float deltaY, float deltaZ);
+	void PanCamera(float deltaX, float deltaY, float deltaZ);
 };

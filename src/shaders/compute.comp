@@ -35,6 +35,7 @@ layout(push_constant) uniform s_pushConstants {
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
     mat4 proj;
+	vec3 cameraPos;
 } camera;
 
 layout(set = 1, binding = 0) uniform Time {
@@ -133,6 +134,10 @@ void main() {
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
 	Blade blade = inputBlades[gl_GlobalInvocationID.x];
+
+	// Update the position of the terrain points based on the movement of the camera
+	blade.v0.x += camera.cameraPos.x;
+	blade.v0.z += camera.cameraPos.z;
 
 	// store tesselation level in v1 for now
 	blade.v1 = vec4(500.0);

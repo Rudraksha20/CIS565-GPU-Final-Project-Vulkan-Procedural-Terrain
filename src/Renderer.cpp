@@ -1223,12 +1223,39 @@ void Renderer::Frame() {
 
     // read "data"
     BladeDrawIndirect* indirectDraw = (BladeDrawIndirect*)data;
-    printf("num blades: %d\n", indirectDraw->vertexCount);
+    //printf("num blades: %d\n", indirectDraw->vertexCount);
 
     // No need for the staging buffer anymore
     vkDestroyBuffer(device->GetVkDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->GetVkDevice(), stagingBufferMemory, nullptr);
     // try to read numBladesBuffer ============================================
+
+	// Try to read all the blades first position info ========================================
+	// Create the staging buffer
+	VkBuffer stagingBuffer1;
+	VkDeviceMemory stagingBuffer1Memory;
+	VkDeviceSize buffer1Size = NUM_BLADES * sizeof(Blade);
+
+	VkBufferUsageFlags staging1Usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	VkMemoryPropertyFlags staging1Properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	BufferUtils::CreateBuffer(device, buffer1Size, staging1Usage, staging1Properties, stagingBuffer1, stagingBuffer1Memory);
+
+	// Fill the staging buffer
+	void *data1;
+	vkMapMemory(device->GetVkDevice(), stagingBuffer1Memory, 0, buffer1Size, 0, &data1);
+	// CPU mem "data" should now be mapped to a vkbuffer!!??
+	// so copy data into "data"
+	BufferUtils::CopyBuffer(device, computeCommandPool, scene->GetBlades()[0]->GetBladesBuffer(), stagingBuffer1, buffer1Size);
+	vkUnmapMemory(device->GetVkDevice(), stagingBuffer1Memory);
+
+	// read "data"
+	Blade* blade1 = (Blade*)data1;
+	printf("blade[i].vo: %d\n", (*blade1).v0);
+
+	// No need for the staging buffer anymore
+	vkDestroyBuffer(device->GetVkDevice(), stagingBuffer1, nullptr);
+	// Try to read all the blades first position info ========================================
+
 #endif // PRINT_NUM_BLADES
 
     if (!swapChain->Present()) {

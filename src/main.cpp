@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <iostream>
 
 Device* device;
 SwapChain* swapChain;
@@ -22,8 +23,82 @@ namespace {
 
     bool leftMouseDown = false;
     bool rightMouseDown = false;
+	bool middleMouseDown = false;
     double previousX = 0.0;
     double previousY = 0.0;
+	double previousPosX = 0.0;
+	double previousPosY = 0.0;
+	double previousPosZ = 0.0;
+	float stepSize = 1.0;
+	bool keyPressedA = false;
+	bool keyPressedS = false;
+	bool keyPressedD = false;
+	bool keyPressedW = false;
+	bool keyPressedQ = false;
+	bool keyPressedE = false;
+
+	void keyPressCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		if (key == GLFW_KEY_A) {
+			if (action == GLFW_PRESS) {
+				keyPressedA = true;
+				previousPosX = -1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedA = false;
+				previousPosX = 0;
+			}
+		} else if (key == GLFW_KEY_S) {
+			if (action == GLFW_PRESS) {
+				keyPressedS = true;
+				previousPosZ = 1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedS = false;
+				previousPosZ = 0;
+			}
+		} else if (key == GLFW_KEY_D) {
+			if (action == GLFW_PRESS) {
+				keyPressedD = true;
+				previousPosX = 1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedD = false;
+				previousPosX = 0;
+			}
+		} else if (key == GLFW_KEY_W) {
+			if (action == GLFW_PRESS) {
+				keyPressedW = true;
+				previousPosZ = -1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedW = false;
+				previousPosZ = 0;
+			}
+		} else if (key == GLFW_KEY_Q) {
+			if (action == GLFW_PRESS) {
+				keyPressedQ = true;
+				previousPosY = -1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedQ = false;
+				previousPosY = 0;
+			}
+		} else if (key == GLFW_KEY_E) {
+			if (action == GLFW_PRESS) {
+				keyPressedE = true;
+				previousPosY = 1 * stepSize;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedE = false;
+				previousPosY = 0;
+			}
+		}
+
+		if (keyPressedA || keyPressedS || keyPressedD || keyPressedW || keyPressedQ || keyPressedE) {
+			camera->PanCamera(previousPosX, previousPosY, previousPosZ);
+			camera->UpdateOrbit(0.0f, 0.0f, 0.0f);
+		}
+	}
 
     void mouseDownCallback(GLFWwindow* window, int button, int action, int mods) {
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -42,7 +117,7 @@ namespace {
             else if (action == GLFW_RELEASE) {
                 rightMouseDown = false;
             }
-        }
+		}
     }
 
     void mouseMoveCallback(GLFWwindow* window, double xPosition, double yPosition) {
@@ -61,7 +136,7 @@ namespace {
             camera->UpdateOrbit(0.0f, 0.0f, deltaZ);
 
             previousY = yPosition;
-        }
+		}
     }
 }
 
@@ -141,7 +216,8 @@ int main() {
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
-    glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	glfwSetKeyCallback(GetGLFWWindow(), keyPressCallback);
 
     while (!ShouldQuit()) {
         glfwPollEvents();
