@@ -85,6 +85,13 @@ void Camera::PanCamera(float deltaX, float deltaY, float deltaZ) {
 	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
+void Camera::ResetCamera() {
+	r = 10.0f;
+	theta = 0.0f;
+	phi = 0.0f;
+	cameraRefPos = glm::vec3(0.0f);
+}
+
 const CameraBufferObject& Camera::GetCBO() {
     return cameraBufferObject;
 }

@@ -81,5 +81,18 @@ void main() {
 	*/
 	fs_uv.x = (0.49 <= u && u <= 0.5) ? 1.0 : 0.0;
 	fs_uv.y = (0.24 <= v && v <= 0.26) ? 1.0 : 0.0;
-	fs_normal = vec3(1.0);
+
+	// Camculating the normal
+	float deviation = 0.0001;
+	vec3 posXOffset = worldPos.xyz;
+	posXOffset.x += 1.0 * deviation;
+	posXOffset.y = gl_in[0].gl_Position.y;
+	posXOffset.y += smoothNoise(posXOffset.xz * 0.125) * 6.0;
+	vec3 posZOffset = worldPos.xyz;
+	posZOffset.z += 1.0 * deviation;
+	posZOffset.y = gl_in[0].gl_Position.y;
+	posZOffset.y += smoothNoise(posZOffset.xz * 0.125) * 6.0;
+
+	fs_normal = normalize(cross(posXOffset - worldPos.xyz, posZOffset - worldPos.xyz));
+	//fs_normal = vec3(1.0);
 }

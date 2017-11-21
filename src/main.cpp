@@ -93,6 +93,11 @@ namespace {
 				keyPressedE = false;
 				previousPosY = 0;
 			}
+		} else if (key == GLFW_KEY_R) {
+			if (action == GLFW_PRESS) {
+				camera->ResetCamera();
+				camera->UpdateOrbit(0.0f, 0.0f, 0.0f);
+			}
 		}
 
 		if (keyPressedA || keyPressedS || keyPressedD || keyPressedW || keyPressedQ || keyPressedE) {

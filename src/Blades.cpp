@@ -14,6 +14,7 @@ Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Mode
         Blade currentBlade = Blade();
 
         glm::vec3 bladeUp(0.0f, 1.0f, 0.0f);
+		planeDim = 5;
 
         // Generate positions and direction (v0)
         float x = (float)(i % 16) * planeDim - 8 * planeDim;

@@ -26,5 +26,13 @@ void main() {
 		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
 		outColor = vec4(color, 1.0);
 	}
-	outColor = vec4(fs_color.xyz, 1.0);
+	
+	// Lambertian Shading
+	vec3 lightDirection = -normalize(vec3(2.0f, 1.0f, 2.0f));
+	vec3 color = vec3(0.75f);
+	float ambient = 0.2;
+	float dotProd = clamp(dot(fs_normal, lightDirection), 0.0f, 1.0f);
+	color = color * dotProd + ambient;
+
+	outColor = vec4(color, 1.0);
 }

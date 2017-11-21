@@ -34,4 +34,5 @@ public:
     
     void UpdateOrbit(float deltaX, float deltaY, float deltaZ);
 	void PanCamera(float deltaX, float deltaY, float deltaZ);
+	void ResetCamera();
 };
