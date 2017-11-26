@@ -31,7 +31,7 @@ void main() {
 	vec3 lightDirection = -normalize(vec3(2.0f, 1.0f, 2.0f));
 	vec3 color = vec3(0.75f);
 	float ambient = 0.2;
-	float dotProd = clamp(dot(fs_normal, lightDirection), 0.0f, 1.0f);
+	float dotProd = (dot(normalize(fs_normal), lightDirection));
 	color = color * dotProd + ambient;
 
 	outColor = vec4(color, 1.0);

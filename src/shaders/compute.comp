@@ -1,8 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define MIN_TESS_LEVEL 50.0
-#define MAX_TESS_LEVEL 500.0
+#define MIN_TESS_LEVEL 25.0
+#define MAX_TESS_LEVEL 250.0
 
 #define DISTANCE_BUCKETS 8
 #define MAX_DISTANCE 65.0
