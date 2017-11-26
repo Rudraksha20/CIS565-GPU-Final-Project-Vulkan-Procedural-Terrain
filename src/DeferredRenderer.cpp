@@ -20,6 +20,7 @@ DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* 
 
     CreateCommandPools();
     CreateRenderPass();
+    // TODO: call CreateDeferred*() / RecordDeferred*() functions here DTODO
     CreateCameraDescriptorSetLayout();
     CreateModelDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
@@ -356,6 +357,90 @@ void DeferredRenderer::CreateDeferredRenderPass() {
 
     if (vkCreateSampler(logicalDevice, &sampler, nullptr, &deferredSampler) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create DEFERRED sampler");
+    }
+}
+
+void DeferredRenderer::RecordDeferredCommandBuffer() {
+    // Specify the command pool and number of buffers to allocate
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = graphicsCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(1);
+
+    if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, &deferredCommandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate DEFERRED command buffers");
+    }
+
+    // Create a semaphore used to synchronize offscreen rendering and usage
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &deferredSemaphore) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate DEFERRED semaphore");
+    }
+
+    // Set up command buffer begin
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    // Clear values for all attachments written in the fragment sahder
+    std::array<VkClearValue, 4> clearValues;
+    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[3].depthStencil = { 1.0f, 0 };
+
+    // Set up render pass begin
+    // This will clear values in G-buffer
+    VkRenderPassBeginInfo renderPassBeginInfo = {};
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.renderPass = deferredRenderPass;
+    renderPassBeginInfo.framebuffer = deferredFramebuffer;
+    renderPassBeginInfo.renderArea.extent.width = swapChain->GetVkExtent().width;
+    renderPassBeginInfo.renderArea.extent.height = swapChain->GetVkExtent().height;
+    renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassBeginInfo.pClearValues = clearValues.data();
+
+    // ~ Start recording ~
+    if (vkBeginCommandBuffer(deferredCommandBuffer, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to begin recording DEFERRED command buffer");
+    }
+
+    // TODO: change pipeline layout? DTODO
+    // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
+    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+
+    vkCmdBeginRenderPass(deferredCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    // Bind the deferred pipeline
+    vkCmdBindPipeline(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipeline);
+
+    for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
+        VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };//{ scene->GetBlades()[j]->GetCulledBladesBuffer() };
+        VkDeviceSize offsets[] = { 0 };
+        // TODO: Uncomment this when the buffers are populated
+        vkCmdBindVertexBuffers(deferredCommandBuffer, 0, 1, vertexBuffers, offsets);
+
+        // TODO: Bind the descriptor set for each grass blades model
+        vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
+
+        // Draw
+        // TODO: Uncomment this when the buffers are populated
+        // CHECKITOUT: it's getNumBladesBuffer that specifies how many threads are spawned
+        // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdDrawIndirect.html
+        // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkDrawIndirectCommand.html
+        vkCmdDrawIndirect(deferredCommandBuffer, scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
+    }
+
+    // End render pass
+    vkCmdEndRenderPass(deferredCommandBuffer);
+
+    // ~ End recording ~
+    if (vkEndCommandBuffer(deferredCommandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to record DEFERRED command buffer");
     }
 }
 

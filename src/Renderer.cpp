@@ -59,42 +59,6 @@ void Renderer::CreateCommandPools() {
 }
 
 void Renderer::CreateRenderPass() {
-	// newly added
-	// add position and normal attachments to the render pass (similar to color attachment)
-	VkAttachmentDescription positionAttachment = {};
-	positionAttachment.format = swapChain->GetVkImageFormat();
-	positionAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	positionAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	positionAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	positionAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	positionAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	positionAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
-
-	// Create a position attachment reference to be used with subpass
-	VkAttachmentReference positionAttachmentRef = {};
-	positionAttachmentRef.attachment = 0;
-	positionAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentDescription normalAttachment = {};
-	normalAttachment.format = swapChain->GetVkImageFormat();
-	normalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	normalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	normalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	normalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	normalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	normalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	normalAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
-
-	// Create a normal attachment reference to be used with subpass
-	VkAttachmentReference normalAttachmentRef = {};
-	normalAttachmentRef.attachment = 0;
-	normalAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	// Hopefully imageView are created below for all the images we are attaching
-	// VkImageCreateInfo ??
-	// ----------------
-
     // Color buffer attachment represented by one of the images from the swap chain
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = swapChain->GetVkImageFormat();
@@ -104,13 +68,12 @@ void Renderer::CreateRenderPass() {
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     // Create a color attachment reference to be used with subpass
-    std::vector<VkAttachmentReference> colorAttachmentRef; // newly added
-	colorAttachmentRef.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-	colorAttachmentRef.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-	colorAttachmentRef.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+    VkAttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // Depth buffer attachment
     VkFormat depthFormat = device->GetInstance()->GetSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -124,44 +87,20 @@ void Renderer::CreateRenderPass() {
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	// _PROBLEM STARTED AFTER CHANGES BELOW
-
     // Create a depth attachment reference
     VkAttachmentReference depthAttachmentRef = {};
-	depthAttachmentRef.attachment = 3;// 1; newly added
+    depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // Create subpass description
     VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRef.size()); // newly added
-    subpass.pColorAttachments = colorAttachmentRef.data();							 // " "
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::array<VkAttachmentDescription, 4> attachments = { colorAttachment, depthAttachment, positionAttachment, normalAttachment };
-	
-	// newly added 
-	// Use subpass dependencies for attachment layput transitions
-	std::array<VkSubpassDependency, 2> dependencies;
+    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-	// --------------
-
-	/*
     // Specify subpass dependency
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -170,7 +109,6 @@ void Renderer::CreateRenderPass() {
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	*/
 
     // Create render pass
     VkRenderPassCreateInfo renderPassInfo = {};
@@ -179,8 +117,8 @@ void Renderer::CreateRenderPass() {
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 2; // 1; newly added
-    renderPassInfo.pDependencies = dependencies.data(); // &dependency; newly added
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass");

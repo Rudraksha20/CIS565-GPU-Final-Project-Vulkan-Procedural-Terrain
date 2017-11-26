@@ -39,6 +39,7 @@ public:
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
+    void RecordDeferredCommandBuffer();
 
     void Frame();
 
@@ -105,6 +106,9 @@ private:
     VkFramebuffer deferredFramebuffer;
     VkSampler deferredSampler;
 
+    VkSemaphore deferredSemaphore;
+
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
+    VkCommandBuffer deferredCommandBuffer;
 };
