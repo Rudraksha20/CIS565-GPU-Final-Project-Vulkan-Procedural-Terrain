@@ -6,7 +6,7 @@
 #ifdef NDEBUG
 const bool ENABLE_VALIDATION = false;
 #else
-const bool ENABLE_VALIDATION = false; // Make true to enable validation layers
+const bool ENABLE_VALIDATION = true; // Make true to enable validation layers
 #endif
 
 namespace {
