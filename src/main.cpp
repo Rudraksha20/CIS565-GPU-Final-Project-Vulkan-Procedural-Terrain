@@ -3,6 +3,7 @@
 #include "Instance.h"
 #include "Window.h"
 #include "Renderer.h"
+#include "DeferredRenderer.h"
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
@@ -10,7 +11,7 @@
 
 Device* device;
 SwapChain* swapChain;
-Renderer* renderer;
+DeferredRenderer* renderer;
 Camera* camera;
 
 namespace {
@@ -226,7 +227,8 @@ int main() {
     scene->AddModel(plane);
     scene->AddBlades(blades);
 
-    renderer = new Renderer(device, swapChain, scene, camera);
+    //renderer = new Renderer(device, swapChain, scene, camera);
+    renderer = new DeferredRenderer(device, swapChain, scene, camera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);

@@ -9,6 +9,8 @@
 
 #define PRINT_NUM_BLADES 0
 
+#define LOTSA_NEWLINES "\n\n\n\n\n\n*** "
+
 static constexpr unsigned int WORKGROUP_SIZE = 32;
 
 DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera)
@@ -18,9 +20,11 @@ DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* 
     scene(scene),
     camera(camera) {
 
+
     CreateCommandPools();
     CreateRenderPass();
     // TODO: call CreateDeferred*() / RecordDeferred*() functions here DTODO
+    CreateDeferredRenderPass();
     CreateCameraDescriptorSetLayout();
     CreateModelDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
@@ -36,6 +40,7 @@ DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* 
     CreateGrassPipeline();
     CreateComputePipeline();
     RecordCommandBuffers();
+    RecordDeferredCommandBuffer();
     RecordComputeCommandBuffer();
 }
 
@@ -191,8 +196,6 @@ void DeferredRenderer::CreateDeferredRenderPass() {
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    // _PROBLEM STARTED AFTER CHANGES BELOW
-
     std::vector<VkAttachmentReference> colorDeferredReferences;
     colorDeferredReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     colorDeferredReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
@@ -210,7 +213,7 @@ void DeferredRenderer::CreateDeferredRenderPass() {
     subpass.pColorAttachments = colorDeferredReferences.data();							 // " "
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::array<VkAttachmentDescription, 4> attachments = { albedoAttachment, depthAttachment, positionAttachment, normalAttachment };
+    std::array<VkAttachmentDescription, 4> attachments = { albedoAttachment, positionAttachment, normalAttachment, depthAttachment, };
 
     // newly added 
     // Use subpass dependencies for attachment layput transitions
@@ -266,7 +269,7 @@ void DeferredRenderer::CreateDeferredRenderPass() {
         swapChain->GetVkExtent().height,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         deferredAlbedoImage,
         deferredAlbedoImageMemory);
@@ -281,7 +284,7 @@ void DeferredRenderer::CreateDeferredRenderPass() {
         swapChain->GetVkExtent().height,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         deferredPositionImage,
         deferredPositionImageMemory);
@@ -296,7 +299,7 @@ void DeferredRenderer::CreateDeferredRenderPass() {
         swapChain->GetVkExtent().height,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         deferredNormalImage,
         deferredNormalImageMemory);
@@ -316,6 +319,7 @@ void DeferredRenderer::CreateDeferredRenderPass() {
         deferredDepthImageMemory
     );
 
+    // DTODO: may not need 2nd bit at end
     deferredDepthImageView = Image::CreateView(device, deferredDepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     std::array<VkImageView, 4> imageViews;
@@ -586,7 +590,7 @@ void DeferredRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 7 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -1382,6 +1386,25 @@ void DeferredRenderer::DestroyFrameResources() {
     for (size_t i = 0; i < framebuffers.size(); i++) {
         vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
     }
+
+    // free deferred pipeline stuff
+    vkDestroyImageView(logicalDevice, deferredAlbedoImageView, nullptr);
+    vkFreeMemory(logicalDevice, deferredAlbedoImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, deferredAlbedoImage, nullptr);
+
+    vkDestroyImageView(logicalDevice, deferredPositionImageView, nullptr);
+    vkFreeMemory(logicalDevice, deferredPositionImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, deferredPositionImage, nullptr);
+
+    vkDestroyImageView(logicalDevice, deferredNormalImageView, nullptr);
+    vkFreeMemory(logicalDevice, deferredNormalImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, deferredNormalImage, nullptr);
+
+    vkDestroyImageView(logicalDevice, deferredDepthImageView, nullptr);
+    vkFreeMemory(logicalDevice, deferredDepthImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, deferredDepthImage, nullptr);
+
+    vkDestroyFramebuffer(logicalDevice, deferredFramebuffer, nullptr);
 }
 
 void DeferredRenderer::RecreateFrameResources() {
@@ -1571,14 +1594,36 @@ void DeferredRenderer::Frame() {
         return;
     }
 
+    // Submit the grass buffer (make G-buffer)
+    VkSubmitInfo deferredSubmitInfo = {};
+    deferredSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore deferredWaitSemaphores[] = { swapChain->GetImageAvailableVkSemaphore() };
+    VkPipelineStageFlags deferredWaitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    deferredSubmitInfo.waitSemaphoreCount = 1;
+    deferredSubmitInfo.pWaitSemaphores = deferredWaitSemaphores;
+    deferredSubmitInfo.pWaitDstStageMask = deferredWaitStages;
+    deferredSubmitInfo.pSignalSemaphores = &deferredSemaphore;
+
+    deferredSubmitInfo.commandBufferCount = 1;
+    deferredSubmitInfo.pCommandBuffers = &deferredCommandBuffer;
+
+    //VkSemaphore signalSemaphores[] = { swapChain->GetRenderFinishedVkSemaphore() };
+    deferredSubmitInfo.signalSemaphoreCount = 1;
+    //submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(device->GetQueue(QueueFlags::Graphics), 1, &deferredSubmitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to submit draw DEFERRED command buffer");
+    }
+
     // Submit the command buffer
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = { swapChain->GetImageAvailableVkSemaphore() };
+    //VkSemaphore waitSemaphores[] = { swapChain->GetImageAvailableVkSemaphore() };
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitSemaphores = &deferredSemaphore;//waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
@@ -1660,6 +1705,7 @@ DeferredRenderer::~DeferredRenderer() {
 
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     vkFreeCommandBuffers(logicalDevice, computeCommandPool, 1, &computeCommandBuffer);
+    vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, 1, &deferredCommandBuffer);
 
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, grassPipeline, nullptr);
@@ -1681,7 +1727,11 @@ DeferredRenderer::~DeferredRenderer() {
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    vkDestroyRenderPass(logicalDevice, deferredRenderPass, nullptr);
     DestroyFrameResources();
     vkDestroyCommandPool(logicalDevice, computeCommandPool, nullptr);
     vkDestroyCommandPool(logicalDevice, graphicsCommandPool, nullptr);
+
+    vkDestroySemaphore(logicalDevice, deferredSemaphore, nullptr);
+    vkDestroySampler(logicalDevice, deferredSampler, nullptr);
 }

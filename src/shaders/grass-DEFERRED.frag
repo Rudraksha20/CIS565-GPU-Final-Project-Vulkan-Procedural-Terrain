@@ -11,12 +11,14 @@ layout(location = 0) in vec2 fs_uv;
 layout(location = 1) in vec3 fs_normal;
 layout(location = 2) in vec4 fs_color;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 outAlbedo;
+layout(location = 1) out vec4 outPosition;
+layout(location = 2) out vec4 outNormal;
 
 void main() {
 	if (fs_color.w > 0.0) {
 		// use custom color in fs_color
-		outColor = vec4(fs_color.xyz, 1.0);
+		outAlbedo = vec4(fs_color.xyz, 1.0);
 	}
 	else {
 		// use green + lambert shading
@@ -24,7 +26,7 @@ void main() {
 		float lambert = max(dot(fs_normal, lightDir), dot(-fs_normal, lightDir));
 		lambert = clamp(lambert, 0.25, 1.0) * 0.5 + 0.5;
 		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
-		outColor = vec4(color, 1.0);
+		outAlbedo = vec4(color, 1.0);
 	}
 	
 	// Lambertian Shading
@@ -34,5 +36,7 @@ void main() {
 	float dotProd = (dot(normalize(fs_normal), lightDirection));
 	color = color * dotProd + ambient;
 
-	outColor = vec4(color, 1.0);
+	outAlbedo = vec4(color, 1.0);
+	outPosition = outAlbedo;
+	outNormal = outAlbedo;
 }
