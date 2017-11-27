@@ -52,7 +52,7 @@ void main() {
 	color = vec3(mix(vec4(color, 1.0), vec4(0.8,0.8,0.9,1.0), fogfactor));
 
 	// gamma correction
-	color = pow(color, vec3(1.0/2.2));
+	//color = pow(color, vec3(1.0/2.2));
 
 	outColor = vec4(color, 1.0);
 }
