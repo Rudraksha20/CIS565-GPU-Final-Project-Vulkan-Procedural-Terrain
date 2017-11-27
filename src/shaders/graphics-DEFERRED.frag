@@ -1,6 +1,12 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout(set = 0, binding = 0) uniform CameraBufferObject {
+    mat4 view;
+    mat4 proj;
+	vec3 cameraPos;
+} camera;
+
 layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
@@ -262,6 +268,19 @@ void main() {
 
 	// FXAA
 	color = FXAA(fragTexCoord, color, width, height, FXAA_SPAN_MAX, FXAA_EDGE_THRESHOLD_MAX, FXAA_EDGE_THRESHOLD_MIN);
+
+	// FOG
+	vec4 fragment_pos = texture(samplerPosition, fragTexCoord);
+    vec4 cam_to_point = fragment_pos - vec4(camera.cameraPos, 1.0);
+    float dist = length(vec3(cam_to_point));
+    float fogcoord = dist;
+    float fog_density = 0.02;
+    float fogEnd = 70.0;
+    float fogStart = 10.0;
+    float fogfactor = 0.0;
+	fogfactor = 1.0-clamp(exp(-pow(fog_density*fogcoord, 2.0)), 0.0, 1.0);
+
+	color = mix(color, vec3(0.8,0.8,0.9), fogfactor);
 
 	outColor = vec4(color.xyz, 1.0);
 }
