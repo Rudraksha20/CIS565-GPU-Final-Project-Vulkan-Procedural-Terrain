@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "DeferredRenderer.h"
+#include "VisibilityRenderer.h"
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
@@ -11,7 +12,7 @@
 
 Device* device;
 SwapChain* swapChain;
-DeferredRenderer* renderer;
+VisibilityRenderer* renderer;
 Camera* camera;
 
 namespace {
@@ -228,7 +229,8 @@ int main() {
     scene->AddBlades(blades);
 
     //renderer = new Renderer(device, swapChain, scene, camera);
-    renderer = new DeferredRenderer(device, swapChain, scene, camera);
+    //renderer = new DeferredRenderer(device, swapChain, scene, camera);
+    renderer = new VisibilityRenderer(device, swapChain, scene, camera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);

@@ -33,8 +33,8 @@ Project Timeline
 ============
 
 -   11/20: Have basic forward pipeline with procedurally tessellated terrain and varying LOD
--   11/27: Add deferred pipeline, texture mapping
--   12/04: Implement paper’s pipeline, extra features
+-   11/27: Add deferred pipeline and paper’s pipeline
+-   12/04: Implement texture mapping, extra features
 -   12/11: Extra features
 
 
