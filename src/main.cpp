@@ -209,10 +209,10 @@ int main() {
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
-            { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-            { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-            { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-            { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
+            { { -1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f },{ 0.0f, 1.0f } },
+            { { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
+            { { 1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },
+            { { -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } }
         },
         { 0, 1, 2, 2, 3, 0 }
     );
@@ -223,7 +223,7 @@ int main() {
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
     Scene* scene = new Scene(device);
-    //scene->AddModel(plane);
+    scene->AddModel(plane);
     scene->AddBlades(blades);
 
     renderer = new Renderer(device, swapChain, scene, camera);

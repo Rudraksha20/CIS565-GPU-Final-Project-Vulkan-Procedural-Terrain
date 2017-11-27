@@ -481,7 +481,29 @@ void DeferredRenderer::CreateModelDescriptorSetLayout() {
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
+    VkDescriptorSetLayoutBinding albedoImageLayoutBinding = {};
+    albedoImageLayoutBinding.binding = 2;
+    albedoImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    albedoImageLayoutBinding.descriptorCount = 1;
+    albedoImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    albedoImageLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding positionImageLayoutBinding = {};
+    positionImageLayoutBinding.binding = 3;
+    positionImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    positionImageLayoutBinding.descriptorCount = 1;
+    positionImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    positionImageLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding normalImageLayoutBinding = {};
+    normalImageLayoutBinding.binding = 4;
+    normalImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalImageLayoutBinding.descriptorCount = 1;
+    normalImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    normalImageLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding, 
+        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -645,7 +667,23 @@ void DeferredRenderer::CreateModelDescriptorSets() {
         throw std::runtime_error("Failed to allocate descriptor set");
     }
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(2 * modelDescriptorSets.size());
+    // Image descriptors for the offscreen color attachments
+    VkDescriptorImageInfo texDescriptorAlbedo = {};
+    texDescriptorAlbedo.sampler = deferredSampler;
+    texDescriptorAlbedo.imageView = deferredAlbedoImageView;
+    texDescriptorAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkDescriptorImageInfo texDescriptorPosition = {};
+    texDescriptorPosition.sampler = deferredSampler;
+    texDescriptorPosition.imageView = deferredPositionImageView;
+    texDescriptorPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkDescriptorImageInfo texDescriptorNormal = {};
+    texDescriptorNormal.sampler = deferredSampler;
+    texDescriptorNormal.imageView = deferredNormalImageView;
+    texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    std::vector<VkWriteDescriptorSet> descriptorWrites(5 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -659,23 +697,47 @@ void DeferredRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[2 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[2 * i + 0].dstBinding = 0;
-        descriptorWrites[2 * i + 0].dstArrayElement = 0;
-        descriptorWrites[2 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[2 * i + 0].descriptorCount = 1;
-        descriptorWrites[2 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[2 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[2 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[5 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[5 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[5 * i + 0].dstBinding = 0;
+        descriptorWrites[5 * i + 0].dstArrayElement = 0;
+        descriptorWrites[5 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[5 * i + 0].descriptorCount = 1;
+        descriptorWrites[5 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[5 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[5 * i + 0].pTexelBufferView = nullptr;
 
-        descriptorWrites[2 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[2 * i + 1].dstBinding = 1;
-        descriptorWrites[2 * i + 1].dstArrayElement = 0;
-        descriptorWrites[2 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[2 * i + 1].descriptorCount = 1;
-        descriptorWrites[2 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[5 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[5 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[5 * i + 1].dstBinding = 1;
+        descriptorWrites[5 * i + 1].dstArrayElement = 0;
+        descriptorWrites[5 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[5 * i + 1].descriptorCount = 1;
+        descriptorWrites[5 * i + 1].pImageInfo = &imageInfo;
+
+        descriptorWrites[5 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[5 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[5 * i + 2].dstBinding = 2;
+        descriptorWrites[5 * i + 2].dstArrayElement = 0;
+        descriptorWrites[5 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[5 * i + 2].descriptorCount = 1;
+        descriptorWrites[5 * i + 2].pImageInfo = &texDescriptorAlbedo;
+
+        descriptorWrites[5 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[5 * i + 3].dstSet = modelDescriptorSets[i];
+        descriptorWrites[5 * i + 3].dstBinding = 3;
+        descriptorWrites[5 * i + 3].dstArrayElement = 0;
+        descriptorWrites[5 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[5 * i + 3].descriptorCount = 1;
+        descriptorWrites[5 * i + 3].pImageInfo = &texDescriptorPosition;
+
+        descriptorWrites[5 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[5 * i + 4].dstSet = modelDescriptorSets[i];
+        descriptorWrites[5 * i + 4].dstBinding = 4;
+        descriptorWrites[5 * i + 4].dstArrayElement = 0;
+        descriptorWrites[5 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[5 * i + 4].descriptorCount = 1;
+        descriptorWrites[5 * i + 4].pImageInfo = &texDescriptorNormal;
     }
 
     // Update descriptor sets
@@ -833,8 +895,8 @@ void DeferredRenderer::CreateComputeDescriptorSets() {
 }
 
 void DeferredRenderer::CreateGraphicsPipeline() {
-    VkShaderModule vertShaderModule = ShaderModule::Create("shaders/graphics.vert.spv", logicalDevice);
-    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/graphics.frag.spv", logicalDevice);
+    VkShaderModule vertShaderModule = ShaderModule::Create("shaders/graphics-DEFERRED.vert.spv", logicalDevice);
+    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/graphics-DEFERRED.frag.spv", logicalDevice);
 
     // Assign each shader module to the appropriate stage in the pipeline
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -996,7 +1058,7 @@ void DeferredRenderer::CreateGrassPipeline() {
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/grass.vert.spv", logicalDevice);
     VkShaderModule tescShaderModule = ShaderModule::Create("shaders/grass.tesc.spv", logicalDevice);
     VkShaderModule teseShaderModule = ShaderModule::Create("shaders/grass.tese.spv", logicalDevice);
-    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/grass.frag.spv", logicalDevice);
+    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/grass-DEFERRED.frag.spv", logicalDevice);
 
     // Assign each shader module to the appropriate stage in the pipeline
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
