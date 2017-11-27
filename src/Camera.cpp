@@ -42,9 +42,11 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
     r = 10.0f;
     theta = 0.0f;
     phi = 0.0f;
+	cameraRefPos = glm::vec3(0.0f);
     cameraBufferObject.viewMatrix = glm::lookAt(glm::vec3(0.0f, 1.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
+	cameraBufferObject.cameraPos = cameraRefPos;
 
     BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
     vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
@@ -60,17 +62,38 @@ VkBuffer Camera::GetBuffer() const {
 void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     theta += deltaX;
     phi += deltaY;
-    r = glm::clamp(r - deltaZ, 1.0f, 50.0f);
+	r = r - deltaZ; // glm::clamp(r - deltaZ, 1.0f, 50.0f); // Change this to make the camera go furthure 
 
     float radTheta = glm::radians(theta);
     float radPhi = glm::radians(phi);
 
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), radTheta, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), radPhi, glm::vec3(1.0f, 0.0f, 0.0f));
-    glm::mat4 finalTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f)) * rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, r));
+	glm::mat4 finalTransform = glm::translate(glm::mat4(1.0f), cameraRefPos) * rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, r));// glm::translate(glm::mat4(1.0f), glm::vec3(0.0f)) * rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, r));
 
     cameraBufferObject.viewMatrix = glm::inverse(finalTransform);
 
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+}
+
+void Camera::PanCamera(float deltaX, float deltaY, float deltaZ) {
+	cameraRefPos.x += deltaX;
+	cameraRefPos.y += deltaY;
+	cameraRefPos.z += deltaZ; 
+
+	cameraBufferObject.cameraPos = cameraRefPos;
+
+	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+}
+
+void Camera::ResetCamera() {
+	r = 10.0f;
+	theta = 0.0f;
+	phi = 0.0f;
+	cameraRefPos = glm::vec3(0.0f);
+}
+
+const CameraBufferObject& Camera::GetCBO() {
+    return cameraBufferObject;
 }
 
 Camera::~Camera() {

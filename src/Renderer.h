@@ -69,10 +69,14 @@ private:
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
     VkPipelineLayout computePipelineLayout;
+	// newly added
+	VkPipelineLayout deferredPipelineLayout;
 
     VkPipeline graphicsPipeline;
     VkPipeline grassPipeline;
     VkPipeline computePipeline;
+	// newly added
+	VkPipeline deferredPipeline;
 
     std::vector<VkImageView> imageViews;
     VkImage depthImage;

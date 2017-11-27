@@ -1,14 +1,17 @@
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include "Instance.h"
 #include "Window.h"
 #include "Renderer.h"
+#include "DeferredRenderer.h"
 #include "Camera.h"
 #include "Scene.h"
 #include "Image.h"
+#include <iostream>
 
 Device* device;
 SwapChain* swapChain;
-Renderer* renderer;
+DeferredRenderer* renderer;
 Camera* camera;
 
 namespace {
@@ -22,8 +25,95 @@ namespace {
 
     bool leftMouseDown = false;
     bool rightMouseDown = false;
+	bool middleMouseDown = false;
     double previousX = 0.0;
     double previousY = 0.0;
+	double previousPosX = 0.0;
+	double previousPosY = 0.0;
+	double previousPosZ = 0.0;
+	float stepSize = 1.0;
+	bool keyPressedA = false;
+	bool keyPressedS = false;
+	bool keyPressedD = false;
+	bool keyPressedW = false;
+	bool keyPressedQ = false;
+	bool keyPressedE = false;
+
+	void keyPressCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		if (key == GLFW_KEY_A) {
+			if (action == GLFW_PRESS) {
+				keyPressedA = true;
+				previousPosX = -1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedA = false;
+				previousPosX = 0;
+			}
+		} else if (key == GLFW_KEY_S) {
+			if (action == GLFW_PRESS) {
+				keyPressedS = true;
+				previousPosZ = 1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedS = false;
+				previousPosZ = 0;
+			}
+		} else if (key == GLFW_KEY_D) {
+			if (action == GLFW_PRESS) {
+				keyPressedD = true;
+				previousPosX = 1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedD = false;
+				previousPosX = 0;
+			}
+		} else if (key == GLFW_KEY_W) {
+			if (action == GLFW_PRESS) {
+				keyPressedW = true;
+				previousPosZ = -1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedW = false;
+				previousPosZ = 0;
+			}
+		} else if (key == GLFW_KEY_Q) {
+			if (action == GLFW_PRESS) {
+				keyPressedQ = true;
+				previousPosY = -1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedQ = false;
+				previousPosY = 0;
+			}
+		} else if (key == GLFW_KEY_E) {
+			if (action == GLFW_PRESS) {
+				keyPressedE = true;
+				previousPosY = 1;
+			}
+			else if (action == GLFW_RELEASE) {
+				keyPressedE = false;
+				previousPosY = 0;
+			}
+		} else if (key == GLFW_KEY_R) {
+			if (action == GLFW_PRESS) {
+				camera->ResetCamera();
+				camera->UpdateOrbit(0.0f, 0.0f, 0.0f);
+			}
+		}
+
+		if (keyPressedA || keyPressedS || keyPressedD || keyPressedW || keyPressedQ || keyPressedE) {
+            glm::mat4 invView = glm::inverse(camera->GetCBO().viewMatrix);
+            glm::vec4 forward = invView * glm::vec4(0.0f, 0.0f, 1.0f, 0.0);
+            forward.y = 0.0f;
+            forward = glm::normalize(forward);
+            glm::vec4 right = invView * glm::vec4(1.0f, 0.0f, 0.0f, 0.0);
+            glm::vec4 up = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+            glm::vec3 dir = glm::vec3((float)previousPosX * right + (float)previousPosY * up + (float)previousPosZ * forward) * stepSize;
+            //dir = glm::vec3(camera->GetCBO().viewMatrix * glm::vec4(dir, 0.0f));
+			camera->PanCamera(dir.x, dir.y, dir.z);
+			camera->UpdateOrbit(0.0f, 0.0f, 0.0f);
+		}
+	}
 
     void mouseDownCallback(GLFWwindow* window, int button, int action, int mods) {
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -42,7 +132,7 @@ namespace {
             else if (action == GLFW_RELEASE) {
                 rightMouseDown = false;
             }
-        }
+		}
     }
 
     void mouseMoveCallback(GLFWwindow* window, double xPosition, double yPosition) {
@@ -61,7 +151,7 @@ namespace {
             camera->UpdateOrbit(0.0f, 0.0f, deltaZ);
 
             previousY = yPosition;
-        }
+		}
     }
 }
 
@@ -120,10 +210,10 @@ int main() {
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
-            { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-            { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-            { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-            { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
+            { { -1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f },{ 0.0f, 1.0f } },
+            { { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
+            { { 1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },
+            { { -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } }
         },
         { 0, 1, 2, 2, 3, 0 }
     );
@@ -134,14 +224,16 @@ int main() {
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
     Scene* scene = new Scene(device);
-    //scene->AddModel(plane);
+    scene->AddModel(plane);
     scene->AddBlades(blades);
 
-    renderer = new Renderer(device, swapChain, scene, camera);
+    //renderer = new Renderer(device, swapChain, scene, camera);
+    renderer = new DeferredRenderer(device, swapChain, scene, camera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
-    glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	glfwSetKeyCallback(GetGLFWWindow(), keyPressCallback);
 
     while (!ShouldQuit()) {
         glfwPollEvents();
