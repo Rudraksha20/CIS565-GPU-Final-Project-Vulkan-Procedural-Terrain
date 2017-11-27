@@ -557,6 +557,7 @@ void DeferredRenderer::CreateComputeDescriptorSetLayout() {
 }
 
 void DeferredRenderer::CreateDescriptorPool() {
+    // DTODO: update this with new buffers?
     // Describe which descriptor types that the descriptor sets will contain
     std::vector<VkDescriptorPoolSize> poolSizes = {
         // Camera
@@ -1101,23 +1102,30 @@ void DeferredRenderer::CreateGrassPipeline() {
 
     // Color blending (turned off here, but showing options for learning)
     // --> Configuration per attached framebuffer
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+    for (int i = 0; i < 3; i++) {
+        VkPipelineColorBlendAttachmentState colorBlendAttachment;
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
+        colorBlendAttachments.push_back(colorBlendAttachment);
+    }
+
+
+    // DTODO: might need to change this? use default settings?
     // --> Global color blending settings
     VkPipelineColorBlendStateCreateInfo colorBlending = {};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.attachmentCount = colorBlendAttachments.size();
+    colorBlending.pAttachments = colorBlendAttachments.data();
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
     colorBlending.blendConstants[2] = 0.0f;
@@ -1159,7 +1167,7 @@ void DeferredRenderer::CreateGrassPipeline() {
     pipelineInfo.pTessellationState = &tessellationInfo;
     pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = grassPipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = deferredRenderPass; // important!!
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
@@ -1437,6 +1445,7 @@ void DeferredRenderer::RecordCommandBuffers() {
         // Bind the graphics pipeline
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+        // DTODO: this "model" should act as screen-covering quad
         for (uint32_t j = 0; j < scene->GetModels().size(); ++j) {
             // Bind the vertex and index buffers
             VkBuffer vertexBuffers[] = { scene->GetModels()[j]->getVertexBuffer() };
@@ -1452,7 +1461,7 @@ void DeferredRenderer::RecordCommandBuffers() {
             std::vector<uint32_t> indices = scene->GetModels()[j]->getIndices();
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         }
-
+#if 0
         // Bind the grass pipeline
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipeline);
 
@@ -1472,7 +1481,7 @@ void DeferredRenderer::RecordCommandBuffers() {
             // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkDrawIndirectCommand.html
             vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
         }
-
+#endif
         // End render pass
         vkCmdEndRenderPass(commandBuffers[i]);
 
