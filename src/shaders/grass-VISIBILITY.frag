@@ -12,9 +12,7 @@ layout(location = 1) in vec3 fs_normal;
 layout(location = 2) in vec4 fs_color;
 layout(location = 3) in vec4 fs_pos;
 
-layout(location = 0) out vec4 outAlbedo;
-layout(location = 1) out vec4 outPosition;
-layout(location = 2) out vec4 outNormal;
+layout(location = 0) out vec4 outVisibility;
 
 void main() {
 #if 0
@@ -39,7 +37,5 @@ void main() {
 	color = color * dotProd + ambient;
 #endif
 
-	outAlbedo = vec4(0.75, 0.75, 0.75, 1.0);
-	outPosition = fs_pos;
-	outNormal = vec4(fs_normal, 0.0);
+	outVisibility = vec4(fs_pos.x, fs_uv.x, fs_pos.z, fs_uv.y);
 }

@@ -87,17 +87,9 @@ private:
     VkImageView depthImageView;
     std::vector<VkFramebuffer> framebuffers;
 
-    VkImage deferredAlbedoImage;
-    VkDeviceMemory deferredAlbedoImageMemory;
-    VkImageView deferredAlbedoImageView;
-
-    VkImage deferredPositionImage;
-    VkDeviceMemory deferredPositionImageMemory;
-    VkImageView deferredPositionImageView;
-
-    VkImage deferredNormalImage;
-    VkDeviceMemory deferredNormalImageMemory;
-    VkImageView deferredNormalImageView;
+    VkImage deferredVisibilityImage;
+    VkDeviceMemory deferredVisibilityImageMemory;
+    VkImageView deferredVisibilityImageView;
 
     VkImage deferredDepthImage;
     VkDeviceMemory deferredDepthImageMemory;

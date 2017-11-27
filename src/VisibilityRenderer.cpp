@@ -132,57 +132,21 @@ void VisibilityRenderer::CreateRenderPass() {
 }
 
 void VisibilityRenderer::CreateDeferredRenderPass() {
-    // Color buffer attachment represented by one of the images from the swap chain
-    VkAttachmentDescription albedoAttachment = {};
-    albedoAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    albedoAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    albedoAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    albedoAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    albedoAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    albedoAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    albedoAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    albedoAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
+    // Viz buffer -- pos and UV for now
+    VkAttachmentDescription visibilityAttachment = {};
+    visibilityAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    visibilityAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    visibilityAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    visibilityAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    visibilityAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    visibilityAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    visibilityAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    visibilityAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
 
-                                                                             // Create a albedo attachment reference to be used with subpass
-    VkAttachmentReference albedoAttachmentRef = {}; // newly added
-    albedoAttachmentRef.attachment = 0;
-    albedoAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    // newly added
-    // add position and normal attachments to the render pass (similar to color attachment)
-    VkAttachmentDescription positionAttachment = {};
-    positionAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    positionAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    positionAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    positionAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    positionAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    positionAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    positionAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    positionAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
-
-                                                                               // Create a position attachment reference to be used with subpass
-    VkAttachmentReference positionAttachmentRef = {};
-    positionAttachmentRef.attachment = 1;
-    positionAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentDescription normalAttachment = {};
-    normalAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    normalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    normalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    normalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    normalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    normalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    normalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    normalAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // newly added
-
-                                                                             // Create a normal attachment reference to be used with subpass
-    VkAttachmentReference normalAttachmentRef = {};
-    normalAttachmentRef.attachment = 2;
-    normalAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    // Hopefully imageView are created below for all the images we are attaching
-    // VkImageCreateInfo ??
-    // ----------------
+                                                                             // Create a visibility attachment reference to be used with subpass
+    VkAttachmentReference visibilityAttachmentRef = {}; // newly added
+    visibilityAttachmentRef.attachment = 0;
+    visibilityAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // Depth buffer attachment
     VkFormat depthFormat = device->GetInstance()->GetSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -198,12 +162,10 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
 
     std::vector<VkAttachmentReference> colorDeferredReferences;
     colorDeferredReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-    colorDeferredReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-    colorDeferredReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 
     // Create a depth attachment reference
     VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 3;// 1; newly added
+    depthAttachmentRef.attachment = 1;// 1; newly added
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // Create subpass description
@@ -213,7 +175,7 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     subpass.pColorAttachments = colorDeferredReferences.data();							 // " "
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::array<VkAttachmentDescription, 4> attachments = { albedoAttachment, positionAttachment, normalAttachment, depthAttachment, };
+    std::array<VkAttachmentDescription, 2> attachments = { visibilityAttachment, depthAttachment, };
 
     // newly added 
     // Use subpass dependencies for attachment layput transitions
@@ -262,7 +224,7 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     }
 
     // Create image, image views
-    // Create albedo image
+    // Create viz image
     Image::Create(
         device,
         swapChain->GetVkExtent().width,
@@ -271,41 +233,11 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        deferredAlbedoImage,
-        deferredAlbedoImageMemory);
+        deferredVisibilityImage,
+        deferredVisibilityImageMemory);
 
-    // Create albedo image view
-    deferredAlbedoImageView = Image::CreateView(device, deferredAlbedoImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    // Create position image
-    Image::Create(
-        device,
-        swapChain->GetVkExtent().width,
-        swapChain->GetVkExtent().height,
-        VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        deferredPositionImage,
-        deferredPositionImageMemory);
-
-    // Create position image view
-    deferredPositionImageView = Image::CreateView(device, deferredPositionImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    // Create normal image
-    Image::Create(
-        device,
-        swapChain->GetVkExtent().width,
-        swapChain->GetVkExtent().height,
-        VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        deferredNormalImage,
-        deferredNormalImageMemory);
-
-    // Create normal image view
-    deferredNormalImageView = Image::CreateView(device, deferredNormalImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    // Create viz image view
+    deferredVisibilityImageView = Image::CreateView(device, deferredVisibilityImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // CREATE DEPTH IMAGE (deferred depth)
     Image::Create(device,
@@ -322,11 +254,9 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     // DTODO: may not need 2nd bit at end
     deferredDepthImageView = Image::CreateView(device, deferredDepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    std::array<VkImageView, 4> imageViews;
-    imageViews[0] = deferredAlbedoImageView;
-    imageViews[1] = deferredPositionImageView;
-    imageViews[2] = deferredNormalImageView;
-    imageViews[3] = deferredDepthImageView;
+    std::array<VkImageView, 2> imageViews;
+    imageViews[0] = deferredVisibilityImageView;
+    imageViews[1] = deferredDepthImageView;
 
     // Create deferred framebuffers
 
@@ -391,11 +321,9 @@ void VisibilityRenderer::RecordDeferredCommandBuffer() {
     beginInfo.pInheritanceInfo = nullptr;
 
     // Clear values for all attachments written in the fragment sahder
-    std::array<VkClearValue, 4> clearValues;
+    std::array<VkClearValue, 2> clearValues;
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[3].depthStencil = { 1.0f, 0 };
+    clearValues[1].depthStencil = { 1.0f, 0 };
 
     // Set up render pass begin
     // This will clear values in G-buffer
@@ -485,29 +413,15 @@ void VisibilityRenderer::CreateModelDescriptorSetLayout() {
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutBinding albedoImageLayoutBinding = {};
-    albedoImageLayoutBinding.binding = 2;
-    albedoImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    albedoImageLayoutBinding.descriptorCount = 1;
-    albedoImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    albedoImageLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding positionImageLayoutBinding = {};
-    positionImageLayoutBinding.binding = 3;
-    positionImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    positionImageLayoutBinding.descriptorCount = 1;
-    positionImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    positionImageLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding normalImageLayoutBinding = {};
-    normalImageLayoutBinding.binding = 4;
-    normalImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    normalImageLayoutBinding.descriptorCount = 1;
-    normalImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    normalImageLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding visibilityImageLayoutBinding = {};
+    visibilityImageLayoutBinding.binding = 2;
+    visibilityImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    visibilityImageLayoutBinding.descriptorCount = 1;
+    visibilityImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    visibilityImageLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding, 
-        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding };
+        visibilityImageLayoutBinding, };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -590,7 +504,7 @@ void VisibilityRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 7 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 5 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -672,22 +586,12 @@ void VisibilityRenderer::CreateModelDescriptorSets() {
     }
 
     // Image descriptors for the offscreen color attachments
-    VkDescriptorImageInfo texDescriptorAlbedo = {};
-    texDescriptorAlbedo.sampler = deferredSampler;
-    texDescriptorAlbedo.imageView = deferredAlbedoImageView;
-    texDescriptorAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkDescriptorImageInfo texDescriptorVisibility = {};
+    texDescriptorVisibility.sampler = deferredSampler;
+    texDescriptorVisibility.imageView = deferredVisibilityImageView;
+    texDescriptorVisibility.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    VkDescriptorImageInfo texDescriptorPosition = {};
-    texDescriptorPosition.sampler = deferredSampler;
-    texDescriptorPosition.imageView = deferredPositionImageView;
-    texDescriptorPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    VkDescriptorImageInfo texDescriptorNormal = {};
-    texDescriptorNormal.sampler = deferredSampler;
-    texDescriptorNormal.imageView = deferredNormalImageView;
-    texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    std::vector<VkWriteDescriptorSet> descriptorWrites(5 * modelDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(3 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -701,47 +605,31 @@ void VisibilityRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[5 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 0].dstBinding = 0;
-        descriptorWrites[5 * i + 0].dstArrayElement = 0;
-        descriptorWrites[5 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[5 * i + 0].descriptorCount = 1;
-        descriptorWrites[5 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[5 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[5 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[3 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[3 * i + 0].dstBinding = 0;
+        descriptorWrites[3 * i + 0].dstArrayElement = 0;
+        descriptorWrites[3 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[3 * i + 0].descriptorCount = 1;
+        descriptorWrites[3 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[3 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[3 * i + 0].pTexelBufferView = nullptr;
 
-        descriptorWrites[5 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 1].dstBinding = 1;
-        descriptorWrites[5 * i + 1].dstArrayElement = 0;
-        descriptorWrites[5 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 1].descriptorCount = 1;
-        descriptorWrites[5 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[3 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[3 * i + 1].dstBinding = 1;
+        descriptorWrites[3 * i + 1].dstArrayElement = 0;
+        descriptorWrites[3 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[3 * i + 1].descriptorCount = 1;
+        descriptorWrites[3 * i + 1].pImageInfo = &imageInfo;
 
-        descriptorWrites[5 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 2].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 2].dstBinding = 2;
-        descriptorWrites[5 * i + 2].dstArrayElement = 0;
-        descriptorWrites[5 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 2].descriptorCount = 1;
-        descriptorWrites[5 * i + 2].pImageInfo = &texDescriptorAlbedo;
-
-        descriptorWrites[5 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 3].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 3].dstBinding = 3;
-        descriptorWrites[5 * i + 3].dstArrayElement = 0;
-        descriptorWrites[5 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 3].descriptorCount = 1;
-        descriptorWrites[5 * i + 3].pImageInfo = &texDescriptorPosition;
-
-        descriptorWrites[5 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 4].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 4].dstBinding = 4;
-        descriptorWrites[5 * i + 4].dstArrayElement = 0;
-        descriptorWrites[5 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 4].descriptorCount = 1;
-        descriptorWrites[5 * i + 4].pImageInfo = &texDescriptorNormal;
+        descriptorWrites[3 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[3 * i + 2].dstBinding = 2;
+        descriptorWrites[3 * i + 2].dstArrayElement = 0;
+        descriptorWrites[3 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[3 * i + 2].descriptorCount = 1;
+        descriptorWrites[3 * i + 2].pImageInfo = &texDescriptorVisibility;
     }
 
     // Update descriptor sets
@@ -1169,7 +1057,7 @@ void VisibilityRenderer::CreateGrassPipeline() {
     // Color blending (turned off here, but showing options for learning)
     // --> Configuration per attached framebuffer
     std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 1; i++) {
         VkPipelineColorBlendAttachmentState colorBlendAttachment;
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
@@ -1388,17 +1276,9 @@ void VisibilityRenderer::DestroyFrameResources() {
     }
 
     // free deferred pipeline stuff
-    vkDestroyImageView(logicalDevice, deferredAlbedoImageView, nullptr);
-    vkFreeMemory(logicalDevice, deferredAlbedoImageMemory, nullptr);
-    vkDestroyImage(logicalDevice, deferredAlbedoImage, nullptr);
-
-    vkDestroyImageView(logicalDevice, deferredPositionImageView, nullptr);
-    vkFreeMemory(logicalDevice, deferredPositionImageMemory, nullptr);
-    vkDestroyImage(logicalDevice, deferredPositionImage, nullptr);
-
-    vkDestroyImageView(logicalDevice, deferredNormalImageView, nullptr);
-    vkFreeMemory(logicalDevice, deferredNormalImageMemory, nullptr);
-    vkDestroyImage(logicalDevice, deferredNormalImage, nullptr);
+    vkDestroyImageView(logicalDevice, deferredVisibilityImageView, nullptr);
+    vkFreeMemory(logicalDevice, deferredVisibilityImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, deferredVisibilityImage, nullptr);
 
     vkDestroyImageView(logicalDevice, deferredDepthImageView, nullptr);
     vkFreeMemory(logicalDevice, deferredDepthImageMemory, nullptr);
