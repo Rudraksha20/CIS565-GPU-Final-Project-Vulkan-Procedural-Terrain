@@ -73,7 +73,8 @@ Instance::Instance(const char* applicationName, unsigned int additionalExtension
     }
 
     // Create instance
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+	auto a = vkCreateInstance(&createInfo, nullptr, &instance);
+    if (a != VK_SUCCESS) {
         throw std::runtime_error("Failed to create instance");
     }
 

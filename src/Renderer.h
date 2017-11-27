@@ -14,6 +14,7 @@ public:
     void CreateCommandPools();
 
     void CreateRenderPass();
+	void CreateDeferredRenderPass(); // replaces CreateRenderPass and CreateFrameResource
 
     void CreateCameraDescriptorSetLayout();
     void CreateModelDescriptorSetLayout();
@@ -38,6 +39,7 @@ public:
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
+	void buildDeferredCommandBuffer(); // newly added
 
     void Frame();
 
@@ -51,7 +53,8 @@ private:
     VkCommandPool graphicsCommandPool;
     VkCommandPool computeCommandPool;
 
-    VkRenderPass renderPass;
+    VkRenderPass renderPass; 
+	VkRenderPass deferredRenderPass; // newly added
 
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelDescriptorSetLayout;
@@ -78,6 +81,31 @@ private:
 	// newly added
 	VkPipeline deferredPipeline;
 
+	// deferred pipeline segments, newly added
+	VkImage deferredPositionImage;
+	VkDeviceMemory deferredPositionMemory;
+	VkImageView deferredPositionView;
+
+	VkImage deferredNormalImage;
+	VkDeviceMemory deferredNormalMemory;
+	VkImageView deferredNormalView;
+
+	VkImage deferredColorImage;
+	VkDeviceMemory deferredColorMemory;
+	VkImageView deferredColorView;
+
+	VkImage deferredDepthImage;
+	VkDeviceMemory deferredDepthMemory;
+	VkImageView deferredDepthView;
+
+	VkFramebuffer deferredFrameBuffer;
+
+	// One sampler for the frame buffer color attachments
+	VkSampler deferredColorSampler;
+
+	VkSemaphore deferredSemaphore;
+	//------
+
     std::vector<VkImageView> imageViews;
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -86,4 +114,6 @@ private:
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
+
+	VkCommandBuffer deferredCommandBuffer; // newly added
 };
