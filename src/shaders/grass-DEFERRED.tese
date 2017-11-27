@@ -12,6 +12,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) out vec2 fs_uv;
 layout(location = 1) out vec3 fs_normal;
 layout(location = 2) out vec4 fs_color;
+layout(location = 3) out vec4 fs_pos;
 
 layout(location = 0) patch in vec4 tese_v1;
 layout(location = 1) patch in vec4 tese_v2;
@@ -94,5 +95,6 @@ void main() {
 	posZOffset.y += smoothNoise(posZOffset.xz * 0.125) * 6.0;
 
 	fs_normal = normalize(cross(posXOffset - worldPos.xyz, posZOffset - worldPos.xyz));
+	fs_pos = worldPos;
 	//fs_normal = vec3(1.0);
 }

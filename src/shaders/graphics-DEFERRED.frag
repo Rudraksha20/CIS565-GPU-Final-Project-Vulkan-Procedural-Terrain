@@ -14,5 +14,12 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     //outColor = vec4(fragTexCoord.x, fragTexCoord.y, 0.0, 1.0);//texture(texSampler, fragTexCoord);
-	outColor = texture(samplerAlbedo, fragTexCoord);
+	// Lambertian Shading
+	const vec3 lightDirection = -normalize(vec3(2.0f, 1.0f, 2.0f));
+	vec4 albedo = texture(samplerAlbedo, fragTexCoord);
+	const float ambient = 0.2;
+	vec3 normal = texture(samplerNormal, fragTexCoord).xyz;
+	float dotProd = (dot(normalize(normal), lightDirection));
+	vec4 color = albedo * dotProd + vec4(ambient);
+	outColor = vec4(color.xyz, 1.0);
 }

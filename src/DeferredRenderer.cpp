@@ -1061,7 +1061,7 @@ void DeferredRenderer::CreateGrassPipeline() {
     // --- Set up programmable shaders ---
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/grass.vert.spv", logicalDevice);
     VkShaderModule tescShaderModule = ShaderModule::Create("shaders/grass.tesc.spv", logicalDevice);
-    VkShaderModule teseShaderModule = ShaderModule::Create("shaders/grass.tese.spv", logicalDevice);
+    VkShaderModule teseShaderModule = ShaderModule::Create("shaders/grass-DEFERRED.tese.spv", logicalDevice);
     VkShaderModule fragShaderModule = ShaderModule::Create("shaders/grass-DEFERRED.frag.spv", logicalDevice);
 
     // Assign each shader module to the appropriate stage in the pipeline
