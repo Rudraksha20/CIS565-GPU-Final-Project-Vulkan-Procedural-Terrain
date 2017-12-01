@@ -12,7 +12,7 @@
 
 Device* device;
 SwapChain* swapChain;
-VisibilityRenderer* renderer;
+DeferredRenderer* renderer;
 Camera* camera;
 
 namespace {
@@ -32,7 +32,7 @@ namespace {
 	double previousPosX = 0.0;
 	double previousPosY = 0.0;
 	double previousPosZ = 0.0;
-	float stepSize = 1.0;
+	float stepSize = 0.25;
 	bool keyPressedA = false;
 	bool keyPressedS = false;
 	bool keyPressedD = false;
@@ -229,8 +229,8 @@ int main() {
     scene->AddBlades(blades);
 
     //renderer = new Renderer(device, swapChain, scene, camera);
-    //renderer = new DeferredRenderer(device, swapChain, scene, camera);
-    renderer = new VisibilityRenderer(device, swapChain, scene, camera);
+    renderer = new DeferredRenderer(device, swapChain, scene, camera);
+    //renderer = new VisibilityRenderer(device, swapChain, scene, camera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);

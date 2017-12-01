@@ -39,7 +39,7 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
 }
 #else
 Camera::Camera(Device* device, float aspectRatio) : device(device) {
-    r = 10.0f;
+    r = 0.5f;
     theta = 0.0f;
     phi = 0.0f;
 	cameraRefPos = glm::vec3(0.0f);
