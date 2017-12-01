@@ -32,7 +32,6 @@ public:
     void CreateGraphicsPipeline();
     void CreateGrassPipeline();
     void CreateComputePipeline();
-	void CreateShadowMappingPipeline();
 
     void CreateFrameResources();
     void DestroyFrameResources();
