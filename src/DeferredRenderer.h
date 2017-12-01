@@ -32,6 +32,7 @@ public:
     void CreateGraphicsPipeline();
     void CreateGrassPipeline();
     void CreateComputePipeline();
+	void CreateShadowMappingPipeline();
 
     void CreateFrameResources();
     void DestroyFrameResources();
@@ -42,7 +43,6 @@ public:
     void RecordDeferredCommandBuffer();
 
     void Frame();
-
 private:
     Device* device;
     VkDevice logicalDevice;

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set (CMAKE_SYSTEM_VERSION 8.1 CACHE TYPE INTERNAL FORCE)
 
 project(cis565_project6_vulkan_grass_rendering)
 
