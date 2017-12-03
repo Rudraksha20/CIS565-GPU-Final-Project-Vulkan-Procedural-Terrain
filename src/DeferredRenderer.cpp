@@ -129,6 +129,33 @@ void DeferredRenderer::CreateRenderPass() {
     if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass");
     }
+
+    // Load skybox texure
+    VkCommandPoolCreateInfo transferPoolInfo = {};
+    transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    transferPoolInfo.queueFamilyIndex = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Transfer];
+    transferPoolInfo.flags = 0;
+
+    VkCommandPool transferCommandPool;
+    if (vkCreateCommandPool(device->GetVkDevice(), &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command pool for transferring skybox texture");
+    }
+
+    Image::FromFile(device,
+        transferCommandPool,
+        "images/sky12.jpg",
+        VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        skyboxImage,
+        skyboxImageMemory
+    );
+
+    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+
+    skyboxImageView = Image::CreateView(device, skyboxImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void DeferredRenderer::CreateDeferredRenderPass() {
@@ -506,8 +533,15 @@ void DeferredRenderer::CreateModelDescriptorSetLayout() {
     normalImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     normalImageLayoutBinding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding skyboxImageLayoutBinding = {};
+    skyboxImageLayoutBinding.binding = 5;
+    skyboxImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    skyboxImageLayoutBinding.descriptorCount = 1;
+    skyboxImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    skyboxImageLayoutBinding.pImmutableSamplers = nullptr;
+
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding, 
-        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding };
+        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding, skyboxImageLayoutBinding, };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -590,7 +624,7 @@ void DeferredRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 7 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 9 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -613,7 +647,7 @@ void DeferredRenderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 5;
+    poolInfo.maxSets = 6;
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -687,7 +721,13 @@ void DeferredRenderer::CreateModelDescriptorSets() {
     texDescriptorNormal.imageView = deferredNormalImageView;
     texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(5 * modelDescriptorSets.size());
+    // Image descriptors for skybox texture
+    VkDescriptorImageInfo texDescriptorSkybox = {};
+    texDescriptorSkybox.sampler = deferredSampler;
+    texDescriptorSkybox.imageView = skyboxImageView;
+    texDescriptorSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    std::vector<VkWriteDescriptorSet> descriptorWrites(6 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -701,47 +741,55 @@ void DeferredRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[5 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 0].dstBinding = 0;
-        descriptorWrites[5 * i + 0].dstArrayElement = 0;
-        descriptorWrites[5 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[5 * i + 0].descriptorCount = 1;
-        descriptorWrites[5 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[5 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[5 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[6 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 0].dstBinding = 0;
+        descriptorWrites[6 * i + 0].dstArrayElement = 0;
+        descriptorWrites[6 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[6 * i + 0].descriptorCount = 1;
+        descriptorWrites[6 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[6 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[6 * i + 0].pTexelBufferView = nullptr;
 
-        descriptorWrites[5 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 1].dstBinding = 1;
-        descriptorWrites[5 * i + 1].dstArrayElement = 0;
-        descriptorWrites[5 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 1].descriptorCount = 1;
-        descriptorWrites[5 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[6 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 1].dstBinding = 1;
+        descriptorWrites[6 * i + 1].dstArrayElement = 0;
+        descriptorWrites[6 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 1].descriptorCount = 1;
+        descriptorWrites[6 * i + 1].pImageInfo = &imageInfo;
 
-        descriptorWrites[5 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 2].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 2].dstBinding = 2;
-        descriptorWrites[5 * i + 2].dstArrayElement = 0;
-        descriptorWrites[5 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 2].descriptorCount = 1;
-        descriptorWrites[5 * i + 2].pImageInfo = &texDescriptorAlbedo;
+        descriptorWrites[6 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 2].dstBinding = 2;
+        descriptorWrites[6 * i + 2].dstArrayElement = 0;
+        descriptorWrites[6 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 2].descriptorCount = 1;
+        descriptorWrites[6 * i + 2].pImageInfo = &texDescriptorAlbedo;
 
-        descriptorWrites[5 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 3].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 3].dstBinding = 3;
-        descriptorWrites[5 * i + 3].dstArrayElement = 0;
-        descriptorWrites[5 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 3].descriptorCount = 1;
-        descriptorWrites[5 * i + 3].pImageInfo = &texDescriptorPosition;
+        descriptorWrites[6 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 3].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 3].dstBinding = 3;
+        descriptorWrites[6 * i + 3].dstArrayElement = 0;
+        descriptorWrites[6 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 3].descriptorCount = 1;
+        descriptorWrites[6 * i + 3].pImageInfo = &texDescriptorPosition;
 
-        descriptorWrites[5 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 4].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 4].dstBinding = 4;
-        descriptorWrites[5 * i + 4].dstArrayElement = 0;
-        descriptorWrites[5 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 4].descriptorCount = 1;
-        descriptorWrites[5 * i + 4].pImageInfo = &texDescriptorNormal;
+        descriptorWrites[6 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 4].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 4].dstBinding = 4;
+        descriptorWrites[6 * i + 4].dstArrayElement = 0;
+        descriptorWrites[6 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 4].descriptorCount = 1;
+        descriptorWrites[6 * i + 4].pImageInfo = &texDescriptorNormal;
+
+        descriptorWrites[6 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 5].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 5].dstBinding = 5;
+        descriptorWrites[6 * i + 5].dstArrayElement = 0;
+        descriptorWrites[6 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 5].descriptorCount = 1;
+        descriptorWrites[6 * i + 5].pImageInfo = &texDescriptorSkybox;
     }
 
     // Update descriptor sets
@@ -1404,6 +1452,11 @@ void DeferredRenderer::DestroyFrameResources() {
     vkDestroyImage(logicalDevice, deferredDepthImage, nullptr);
 
     vkDestroyFramebuffer(logicalDevice, deferredFramebuffer, nullptr);
+
+    // free skybox texture
+    vkDestroyImageView(logicalDevice, skyboxImageView, nullptr);
+    vkFreeMemory(logicalDevice, skyboxImageMemory, nullptr);
+    vkDestroyImage(logicalDevice, skyboxImage, nullptr);
 }
 
 void DeferredRenderer::RecreateFrameResources() {

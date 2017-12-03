@@ -33,6 +33,14 @@ Blades::Blades(Device* device, VkCommandPool commandPool, float planeDim) : Mode
         float width = MIN_WIDTH + (generateRandomFloat() * (MAX_WIDTH - MIN_WIDTH));
         currentBlade.v2 = glm::vec4(bladePosition + bladeUp * height, width);
 
+        // skybox
+        if (i == NUM_BLADES - 1) {
+            currentBlade.v2 = glm::vec4(1.0f);
+        }
+        else {
+            currentBlade.v2 = glm::vec4(0.0f);
+        }
+
         // Up vector and stiffness coefficient (up)
         float stiffness = MIN_BEND + (generateRandomFloat() * (MAX_BEND - MIN_BEND));
         currentBlade.up = glm::vec4(bladeUp, stiffness);

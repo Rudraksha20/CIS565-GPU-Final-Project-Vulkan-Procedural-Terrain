@@ -36,7 +36,8 @@ void main() {
 
 	// compute v2 in world space
 	vec4 worldV2 = model * vec4(vs_v2.xyz, 1.0);
-	tesc_v2 = worldV2;
+	// propagate skybox flag
+	tesc_v2 = vs_v2;
 
 	// compute up in world space
 	vec4 worldUp = normalize(model * vec4(vs_up.xyz, 0.0));

@@ -107,6 +107,11 @@ private:
 
     VkSemaphore deferredSemaphore;
 
+    // skybox texture
+    VkImage skyboxImage;
+    VkDeviceMemory skyboxImageMemory;
+    VkImageView skyboxImageView;
+
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
     VkCommandBuffer deferredCommandBuffer;

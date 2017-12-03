@@ -12,6 +12,7 @@ layout(set = 1, binding = 1) uniform sampler2D texSampler;
 layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 3) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 4) uniform sampler2D samplerNormal;
+layout (set = 1, binding = 5) uniform sampler2D samplerSkybox;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -384,7 +385,21 @@ void main() {
 	color = mix(color, fogColor, fogfactor);
 
 	if(fragment_pos.y <= 0) {
-		outColor = vec4(0.768f, 0.8039f, 0.898f, 1.0);
+		// sample from skybox texture
+		// get sky's "position"
+		// 100.0 = far plane
+		vec4 skyPos = vec4(fragTexCoord.xy, 1.0, 1.0) * 100.0;
+		vec4 worldSkyPos = inverse(camera.proj * camera.view) * skyPos;
+		//worldSkyPos = normalize(worldSkyPos);
+		vec3 lookDir = normalize(worldSkyPos.xyz - camera.cameraPos);
+		float xzAngle = atan(lookDir.z, lookDir.x);//atan(worldSkyPos.z, worldSkyPos.x);
+		float yAngle = asin(worldSkyPos.y);
+		//lookDir.y = (lookDir.y < 0.0) ? (lookDir.y * 0.5 - 0.5) : (lookDir.y * 1.5 - 0.5);
+		//lookDir.y = clamp(lookDir.y, 0.0, 1.0);
+		float radius = 1.0 - (lookDir.y + 1.0) * 0.5;
+		vec2 skyboxUV = vec2(cos(xzAngle) * radius, sin(xzAngle) * radius) * 0.5 + vec2(0.5);
+		vec4 skyColor = texture(samplerSkybox, skyboxUV);//vec4(y_angle, 0.0, xz_angle, 1.0);
+		outColor = mix(vec4(0.768f, 0.8039f, 0.898f, 1.0), skyColor, 0.5);
 	}
 	else {
 		// gamma correction

@@ -35,4 +35,8 @@ void main() {
 	color = color * dotProd + ambient;
 
 	outColor = vec4(color, 1.0);
+
+	if (fs_color.w < 0.0) {
+		outColor = vec4(fs_color.xyz, 1.0);
+	}
 }

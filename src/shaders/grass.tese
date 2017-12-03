@@ -95,4 +95,12 @@ void main() {
 
 	fs_normal = normalize(cross(posXOffset - worldPos.xyz, posZOffset - worldPos.xyz));
 	//fs_normal = vec3(1.0);
+
+	if (tese_v2.x > 0.01) {
+		gl_Position.x = u * 2.0 - 1.0;
+		gl_Position.y = v * 2.0 - 1.0;
+		gl_Position.z = 0.9999;
+		gl_Position.w = 1.0;
+		fs_color = vec4(0.0, 0.0, 1.0, -1.0);
+	}
 }

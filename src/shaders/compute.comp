@@ -215,7 +215,9 @@ void main() {
 	// store tesselation level in v1 for now
 	blade.v1.y = getTesselationLevel(dist);
 
-	
-	uint idx = atomicAdd(numBlades.vertexCount, 1);
-	culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
+	// remove if for forward pipeline
+	if (blade.v2.x <= 0.01) {
+		uint idx = atomicAdd(numBlades.vertexCount, 1);
+		culledBlades[idx] = blade; //inputBlades[gl_GlobalInvocationID.x];
+	}
 }
