@@ -48,3 +48,4 @@ We'd like to thank the creators of the resources below for providing valuable in
 -   [Patricio Gonzalez Vivo's noise functions](https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83)
 -   [Adrian Biagioli's page on Perlin noise](http://flafla2.github.io/2014/08/09/perlinnoise.html)
 -   [Plume Tutorials' Tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
+-   [Heiko Irrgang's free skybox texture set](https://93i.de/p/free-skybox-texture-set/)

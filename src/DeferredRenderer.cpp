@@ -143,7 +143,7 @@ void DeferredRenderer::CreateRenderPass() {
 
     Image::FromFile(device,
         transferCommandPool,
-        "images/sky12.jpg",
+        "images/ThickCloudsWaterPolar2048.png",
         VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,

@@ -395,7 +395,8 @@ void main() {
 		float xzAngle = atan(lookDir.z, lookDir.x);//atan(worldSkyPos.z, worldSkyPos.x);
 		float yAngle = asin(worldSkyPos.y);
 		//lookDir.y = (lookDir.y < 0.0) ? (lookDir.y * 0.5 - 0.5) : (lookDir.y * 1.5 - 0.5);
-		//lookDir.y = clamp(lookDir.y, 0.0, 1.0);
+		//lookDir.y = clamp(lookDir.y + 0.2, -1.0, 1.0);
+		//lookDir.y = (lookDir.y > 0.6) ? lookDir.y + 0.2 + (lookDir.y - 0.6) * 0.45 : lookDir.y + 0.2;
 		float radius = 1.0 - (lookDir.y + 1.0) * 0.5;
 		vec2 skyboxUV = vec2(cos(xzAngle) * radius, sin(xzAngle) * radius) * 0.5 + vec2(0.5);
 		vec4 skyColor = texture(samplerSkybox, skyboxUV);//vec4(y_angle, 0.0, xz_angle, 1.0);
