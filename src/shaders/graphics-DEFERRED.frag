@@ -7,6 +7,11 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 	vec3 cameraPos;
 } camera;
 
+layout(set = 2, binding = 0) uniform Time {
+    float deltaTime;
+    float totalTime;
+}time;
+
 layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
@@ -53,18 +58,24 @@ float smoothNoise(vec2 p){
 
 // Ray-marching for shadows
 float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
-	float originalH = ro.y;
 	// offset ro.y by a small epsilon to handle shadow acne
-	float epsilon = 0.0;
-	ro.y += epsilon;
+	float epsilon = 0.1;
+	ro = ro + rd * epsilon;
+	float originalH = ro.y;
 	for(float t = mint; t < maxt;) {
 		// travel along rd by t
 		vec3 newPos = ro + t * rd;
-		float newH = smoothNoise(newPos.xz * 0.125) * 6.0;
+		float newH = 1.0 + smoothNoise(newPos.xz * 0.125) * 6.0;
 		if(newH > (originalH)) {
 			return 0.0;
 		}
-		t+=1;
+		if(t < 5.0 * mint) {
+			t += mint;
+		} else {
+			t += 1.0;
+		}
+		
+		
 	}
 	return 1.0;
 }
@@ -76,25 +87,28 @@ vec3 getColorAtUV(vec2 uv) {
 	vec4 position = texture(samplerPosition, uv);
 	
 	// Primary Sun light
-	vec3 lightPosition = vec3(50.0f, 1.0f, 50.0f);
-	const vec3 lightDirection = normalize(position.xyz - lightPosition);
+	vec3 lightPosition = vec3(cos(time.totalTime * 0.025 * 3.14), 20.0 ,sin(time.totalTime * 0.025 * 3.14));
+	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
 
 	vec4 albedo = texture(samplerAlbedo, uv);
 	
-	float mint = 1;
+	float mint = 0.1;
 	float maxt = 50;
 	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
 
 	bool s = true;
 	if (s) {
-	if(position.y > 3.5) {
-		albedo = vec4(0.98, 0.98, 0.98, 1.0);
-	} else if(position.y > 2 && position.y < 3.5) {
-		albedo = vec4(0.0, 0.0, 2.0, 1.0);
-	} else {
-		albedo = vec4(0.0, 2.0, 0.0, 1.0);
-	}
+		if(position.y > 3.5) {
+			albedo = vec4(1.0, 0.98, 0.98, 1.0);
+		} else if(position.y > 3.0 && position.y <= 3.5) {
+			albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz)), vec4(1.0, 0.98, 0.98, 1.0), smoothNoise(position.xz));
+		} else {
+			albedo = mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz));//vec4(0.0, 0.0, 2.0, 1.0);
+		}
+		//else if(position.y > 2 && position.y < 3.5) {//b + g
+		//	albedo = mix(vec4(0.529, 0.2627, 0.09, 1.0), vec4(0.568, 0.586, 0.129, 1.0), smoothNoise(position.xz));//vec4(0.0, 2.0, 0.0, 1.0);
+		//}
 	}
 
 	const float ambient = 0.15;
@@ -104,15 +118,15 @@ vec3 getColorAtUV(vec2 uv) {
 	float dotProd = clamp(dot(normal, lightDirection), 0.0, 1.0);
 	
 	// Sky light
-	float sky = clamp(0.5 + normal.y * 0.5, 0.0 , 1.0) * occ;
+	float sky = clamp(0.5 + normal.y * 0.5, 0.0 , 1.0);
 
 	// Indiect light
-	float ind = clamp(dot(normal, normalize(lightDirection * vec3(-1.0, 0.0, -1.0))), 0.0, 1.0) * occ;
+	float ind = clamp(dot(normal, normalize(lightDirection * vec3(-1.0, 0.0, -1.0))), 0.0, 1.0);
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
 	vec3 lightContribution = dotProd * vec3(1.64, 1.27, 0.99) * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
-	lightContribution += sky * vec3(0.16, 0.2, 0.28) * 0.3;
-	lightContribution += ind * vec3(0.4, 0.28, 0.2) * 0.2;
+	lightContribution += sky * vec3(0.16, 0.2, 0.28) * occ;
+	lightContribution += ind * vec3(0.4, 0.28, 0.2) * occ;
 	return vec3(albedo) * lightContribution + vec3(ambient);
 }
 
@@ -377,6 +391,9 @@ void main() {
 	vec3 fogColor = vec3(0.8,0.8,0.9);
 	float c = 0.3;
 	// Height based fog
+	if(abs(cam_to_point.y) < 0.001) {
+		cam_to_point.y = 0.001;
+	}
 	fogfactor = c * exp(-camera.cameraPos.y * fog_density) * (1.0 - exp(-fogcoord * cam_to_point.y * fog_density)) / cam_to_point.y;
 	//fogfactor = 1.0-clamp(exp(-pow(fog_density*fogcoord, 2.0)), 0.0, 1.0);
 
