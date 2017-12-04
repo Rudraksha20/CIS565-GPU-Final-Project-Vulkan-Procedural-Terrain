@@ -60,7 +60,7 @@ float smoothNoise(vec2 p){
 // Ray-marching for shadows
 float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 	// offset ro.y by a small epsilon to handle shadow acne
-	float epsilon = 0.1;
+	float epsilon = 0.025;
 	ro = ro + rd * epsilon;
 	float originalH = ro.y;
 	for(float t = mint; t < maxt;) {
@@ -68,15 +68,13 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 		vec3 newPos = ro + t * rd;
 		float newH = 1.0 + smoothNoise(newPos.xz * 0.125) * 6.0;
 		if(newH > newPos.y) {
-			return 0.0;//1.0 - smoothstep(0.0, 0.1, newH - newPos.y);
+			return 0.1;
 		}
-		if(t < 3.0 * mint) {
+		if(t < 5.0 * mint) {
 			t += mint;
 		} else {
 			t += 2.0;
-		}
-		
-		
+		}	
 	}
 	return 1.0;
 }
@@ -427,7 +425,8 @@ void main() {
 		outColor = mix(vec4(0.768f, 0.8039f, 0.898f, 1.0), skyColor, 0.5);
 		// sun
 		// sun's "position"
-		const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
+		//const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
+		const vec3 sunPosition = vec3(10.0 * cos(time.totalTime * 0.025 * 3.14), 2.0, 10.0 * sin(time.totalTime * 0.025 * 3.14));
 		const vec3 sunDir = normalize(sunPosition);//normalize(vec3(1.0, 0.333, -0.005));
 		const float angle = acos(dot(lookDir, sunDir));
 		const float maxSunMixFactor = 0.95;
