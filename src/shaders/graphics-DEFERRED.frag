@@ -7,6 +7,11 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 	vec3 cameraPos;
 } camera;
 
+layout(set = 2, binding = 0) uniform Time {
+    float deltaTime;
+    float totalTime;
+} time;
+
 layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
@@ -403,14 +408,15 @@ void main() {
 		outColor = mix(vec4(0.768f, 0.8039f, 0.898f, 1.0), skyColor, 0.5);
 		// sun
 		// sun's "position"
-		const vec3 sunDir = normalize(vec3(1.0, 0.333, -0.005));
+		const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
+		const vec3 sunDir = normalize(sunPosition);//normalize(vec3(1.0, 0.333, -0.005));
 		const float angle = acos(dot(lookDir, sunDir));
 		const float maxSunMixFactor = 0.95;
 		float sunMixFactor = angle < 0.010 ? maxSunMixFactor :
 							 angle < 0.040 ? maxSunMixFactor * (1.0 - (angle - 0.010) / 0.030) :
 							                 0.0;
 		// if color is blue-ish, decrease sun influence to simulate cloud cover
-		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.65;											  
+		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.35;											  
 		outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
 	}
 	else {
