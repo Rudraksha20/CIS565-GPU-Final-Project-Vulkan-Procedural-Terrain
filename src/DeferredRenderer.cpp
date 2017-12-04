@@ -153,9 +153,24 @@ void DeferredRenderer::CreateRenderPass() {
         skyboxImageMemory
     );
 
-    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
-
     skyboxImageView = Image::CreateView(device, skyboxImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	// Load grass texure
+	Image::FromFile(device,
+		transferCommandPool,
+		"images/grass_tex.jpg",
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		grassImage,
+		grassImageMemory
+	);
+
+	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+
+	grassImageView = Image::CreateView(device, grassImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void DeferredRenderer::CreateDeferredRenderPass() {
@@ -533,15 +548,22 @@ void DeferredRenderer::CreateModelDescriptorSetLayout() {
     normalImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     normalImageLayoutBinding.pImmutableSamplers = nullptr;
 
+	VkDescriptorSetLayoutBinding grassImageLayoutBinding = {};
+	grassImageLayoutBinding.binding = 5;
+	grassImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	grassImageLayoutBinding.descriptorCount = 1;
+	grassImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	grassImageLayoutBinding.pImmutableSamplers = nullptr;
+
     VkDescriptorSetLayoutBinding skyboxImageLayoutBinding = {};
-    skyboxImageLayoutBinding.binding = 5;
+    skyboxImageLayoutBinding.binding = 6;
     skyboxImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     skyboxImageLayoutBinding.descriptorCount = 1;
     skyboxImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     skyboxImageLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding, 
-        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding, skyboxImageLayoutBinding, };
+        albedoImageLayoutBinding, positionImageLayoutBinding, normalImageLayoutBinding, grassImageLayoutBinding, skyboxImageLayoutBinding, };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -560,7 +582,7 @@ void DeferredRenderer::CreateTimeDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;// VK_SHADER_STAGE_COMPUTE_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
@@ -624,7 +646,7 @@ void DeferredRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 9 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 11 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -721,13 +743,19 @@ void DeferredRenderer::CreateModelDescriptorSets() {
     texDescriptorNormal.imageView = deferredNormalImageView;
     texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+	// Image descriptors for grass texture
+	VkDescriptorImageInfo texDescriptorGrass = {};
+	texDescriptorGrass.sampler = deferredSampler;
+	texDescriptorGrass.imageView = grassImageView;
+	texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
     // Image descriptors for skybox texture
     VkDescriptorImageInfo texDescriptorSkybox = {};
     texDescriptorSkybox.sampler = deferredSampler;
     texDescriptorSkybox.imageView = skyboxImageView;
     texDescriptorSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(6 * modelDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(7 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -741,55 +769,63 @@ void DeferredRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[6 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 0].dstBinding = 0;
-        descriptorWrites[6 * i + 0].dstArrayElement = 0;
-        descriptorWrites[6 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[6 * i + 0].descriptorCount = 1;
-        descriptorWrites[6 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[6 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[6 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[7 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 0].dstBinding = 0;
+        descriptorWrites[7 * i + 0].dstArrayElement = 0;
+        descriptorWrites[7 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[7 * i + 0].descriptorCount = 1;
+        descriptorWrites[7 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[7 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[7 * i + 0].pTexelBufferView = nullptr;
 
-        descriptorWrites[6 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 1].dstBinding = 1;
-        descriptorWrites[6 * i + 1].dstArrayElement = 0;
-        descriptorWrites[6 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[6 * i + 1].descriptorCount = 1;
-        descriptorWrites[6 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[7 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 1].dstBinding = 1;
+        descriptorWrites[7 * i + 1].dstArrayElement = 0;
+        descriptorWrites[7 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[7 * i + 1].descriptorCount = 1;
+        descriptorWrites[7 * i + 1].pImageInfo = &imageInfo;
 
-        descriptorWrites[6 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 2].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 2].dstBinding = 2;
-        descriptorWrites[6 * i + 2].dstArrayElement = 0;
-        descriptorWrites[6 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[6 * i + 2].descriptorCount = 1;
-        descriptorWrites[6 * i + 2].pImageInfo = &texDescriptorAlbedo;
+        descriptorWrites[7 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 2].dstBinding = 2;
+        descriptorWrites[7 * i + 2].dstArrayElement = 0;
+        descriptorWrites[7 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[7 * i + 2].descriptorCount = 1;
+        descriptorWrites[7 * i + 2].pImageInfo = &texDescriptorAlbedo;
 
-        descriptorWrites[6 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 3].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 3].dstBinding = 3;
-        descriptorWrites[6 * i + 3].dstArrayElement = 0;
-        descriptorWrites[6 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[6 * i + 3].descriptorCount = 1;
-        descriptorWrites[6 * i + 3].pImageInfo = &texDescriptorPosition;
+        descriptorWrites[7 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 3].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 3].dstBinding = 3;
+        descriptorWrites[7 * i + 3].dstArrayElement = 0;
+        descriptorWrites[7 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[7 * i + 3].descriptorCount = 1;
+        descriptorWrites[7 * i + 3].pImageInfo = &texDescriptorPosition;
 
-        descriptorWrites[6 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 4].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 4].dstBinding = 4;
-        descriptorWrites[6 * i + 4].dstArrayElement = 0;
-        descriptorWrites[6 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[6 * i + 4].descriptorCount = 1;
-        descriptorWrites[6 * i + 4].pImageInfo = &texDescriptorNormal;
+        descriptorWrites[7 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 4].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 4].dstBinding = 4;
+        descriptorWrites[7 * i + 4].dstArrayElement = 0;
+        descriptorWrites[7 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[7 * i + 4].descriptorCount = 1;
+        descriptorWrites[7 * i + 4].pImageInfo = &texDescriptorNormal;
+						 
+		descriptorWrites[7 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[7 * i + 5].dstSet = modelDescriptorSets[i];
+		descriptorWrites[7 * i + 5].dstBinding = 5;
+		descriptorWrites[7 * i + 5].dstArrayElement = 0;
+		descriptorWrites[7 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[7 * i + 5].descriptorCount = 1;
+		descriptorWrites[7 * i + 5].pImageInfo = &texDescriptorGrass;
 
-        descriptorWrites[6 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[6 * i + 5].dstSet = modelDescriptorSets[i];
-        descriptorWrites[6 * i + 5].dstBinding = 5;
-        descriptorWrites[6 * i + 5].dstArrayElement = 0;
-        descriptorWrites[6 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[6 * i + 5].descriptorCount = 1;
-        descriptorWrites[6 * i + 5].pImageInfo = &texDescriptorSkybox;
+        descriptorWrites[7 * i + 6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[7 * i + 6].dstSet = modelDescriptorSets[i];
+        descriptorWrites[7 * i + 6].dstBinding = 6;
+        descriptorWrites[7 * i + 6].dstArrayElement = 0;
+        descriptorWrites[7 * i + 6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[7 * i + 6].descriptorCount = 1;
+        descriptorWrites[7 * i + 6].pImageInfo = &texDescriptorSkybox;
     }
 
     // Update descriptor sets
@@ -1457,6 +1493,11 @@ void DeferredRenderer::DestroyFrameResources() {
     vkDestroyImageView(logicalDevice, skyboxImageView, nullptr);
     vkFreeMemory(logicalDevice, skyboxImageMemory, nullptr);
     vkDestroyImage(logicalDevice, skyboxImage, nullptr);
+
+	// Destroy grass texture resources
+	vkDestroyImageView(logicalDevice, grassImageView, nullptr);
+	vkFreeMemory(logicalDevice, grassImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, grassImage, nullptr);
 }
 
 void DeferredRenderer::RecreateFrameResources() {
