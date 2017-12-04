@@ -6,6 +6,8 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 proj;
 } camera;
 
+layout (set = 2, binding = 0) uniform sampler2D samplerGrass;
+
 // TODO: Declare fragment shader inputs
 layout(location = 0) in vec2 fs_uv;
 layout(location = 1) in vec3 fs_normal;
@@ -39,7 +41,7 @@ void main() {
 	color = color * dotProd + ambient;
 #endif
 
-	outAlbedo = vec4(0.75, 0.75, 0.75, 1.0);
+	outAlbedo = mix(texture(samplerGrass, fs_uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, fs_pos.y));
 	outPosition = fs_pos;
 	outNormal = vec4(fs_normal, 0.0);
 }

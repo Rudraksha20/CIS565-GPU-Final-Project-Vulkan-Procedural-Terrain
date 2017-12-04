@@ -17,8 +17,7 @@ layout(set = 1, binding = 1) uniform sampler2D texSampler;
 layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 3) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 4) uniform sampler2D samplerNormal;
-layout (set = 1, binding = 5) uniform sampler2D samplerGrass;
-layout (set = 1, binding = 6) uniform sampler2D samplerSkybox;
+layout (set = 1, binding = 5) uniform sampler2D samplerSkybox;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -68,13 +67,13 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 		// travel along rd by t
 		vec3 newPos = ro + t * rd;
 		float newH = 1.0 + smoothNoise(newPos.xz * 0.125) * 6.0;
-		if(newH > (originalH)) {
-			return 0.0;
+		if(newH > newPos.y) {
+			return 0.0;//1.0 - smoothstep(0.0, 0.1, newH - newPos.y);
 		}
-		if(t < 5.0 * mint) {
+		if(t < 3.0 * mint) {
 			t += mint;
 		} else {
-			t += 1.0;
+			t += 2.0;
 		}
 		
 		
@@ -90,17 +89,17 @@ vec3 getColorAtUV(vec2 uv) {
 	float noise = smoothNoise(position.xz);
 
 	// Primary Sun light
-	vec3 lightPosition = vec3(cos(time.totalTime * 0.025 * 3.14), 20.0 ,sin(time.totalTime * 0.025 * 3.14));
+	vec3 lightPosition = vec3(10.0 * cos(time.totalTime * 0.025 * 3.14), 2.0, 10.0 * sin(time.totalTime * 0.025 * 3.14));
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
 
 	vec4 albedo = texture(samplerAlbedo, uv);
 	
 	float mint = 0.1;
-	float maxt = 70;
+	float maxt = 30.0;
 	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
 
-	albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
+	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = (noise < 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
 	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz)), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
@@ -133,10 +132,10 @@ vec3 getColorAtUV(vec2 uv) {
 	float ind = clamp(dot(normal, normalize(lightDirection * vec3(-1.0, 0.0, -1.0))), 0.0, 1.0);
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
-	vec3 lightContribution = dotProd * vec3(1.64, 1.27, 0.99) * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
-	lightContribution += sky * occ;//vec3(0.16, 0.2, 0.28)
-	lightContribution += ind * occ;//vec3(0.4, 0.28, 0.2)
-	return vec3(albedo) * lightContribution + vec3(ambient);
+	vec3 lightContribution = dotProd * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
+	lightContribution += sky;//vec3(0.16, 0.2, 0.28)
+	lightContribution += ind;//vec3(0.4, 0.28, 0.2)
+	return vec3(albedo) * occ * lightContribution + vec3(ambient);
 }
 
 vec3 FXAA(vec2 uv, vec3 color, float width, float height, float FXAA_SPAN_MAX, float FXAA_EDGE_THRESHOLD_MAX, float FXAA_EDGE_THRESHOLD_MIN) {

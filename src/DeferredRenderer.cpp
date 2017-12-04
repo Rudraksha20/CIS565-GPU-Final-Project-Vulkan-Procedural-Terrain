@@ -28,12 +28,14 @@ DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* 
     CreateCameraDescriptorSetLayout();
     CreateModelDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
+    CreateTexDescriptorSetLayout();
     CreateComputeDescriptorSetLayout();
     CreateDescriptorPool();
     CreateCameraDescriptorSet();
     CreateModelDescriptorSets();
     CreateGrassDescriptorSets();
     CreateTimeDescriptorSet();
+    CreateTexDescriptorSet();
     CreateComputeDescriptorSets();
     CreateFrameResources();
     CreateGraphicsPipeline();
@@ -458,6 +460,7 @@ void DeferredRenderer::RecordDeferredCommandBuffer() {
     // TODO: change pipeline layout? DTODO
     // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
     vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 2, 1, &texDescriptorSet, 0, nullptr);
 
     vkCmdBeginRenderPass(deferredCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -598,6 +601,27 @@ void DeferredRenderer::CreateTimeDescriptorSetLayout() {
     }
 }
 
+void DeferredRenderer::CreateTexDescriptorSetLayout() {
+    VkDescriptorSetLayoutBinding grassImageLayoutBinding = {};
+    grassImageLayoutBinding.binding = 0;
+    grassImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    grassImageLayoutBinding.descriptorCount = 1;
+    grassImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    grassImageLayoutBinding.pImmutableSamplers = nullptr;
+    std::vector<VkDescriptorSetLayoutBinding> bindings = { grassImageLayoutBinding };
+
+    // Create the descriptor set layout
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &texDescriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create descriptor set layout");
+    }
+}
+
+
 void DeferredRenderer::CreateComputeDescriptorSetLayout() {
     // TODOX: Create the descriptor set layout for the compute pipeline
     // Remember this is like a class definition stating why types of information
@@ -646,7 +670,7 @@ void DeferredRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 11 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 12 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -743,19 +767,13 @@ void DeferredRenderer::CreateModelDescriptorSets() {
     texDescriptorNormal.imageView = deferredNormalImageView;
     texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-	// Image descriptors for grass texture
-	VkDescriptorImageInfo texDescriptorGrass = {};
-	texDescriptorGrass.sampler = deferredSampler;
-	texDescriptorGrass.imageView = grassImageView;
-	texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
     // Image descriptors for skybox texture
     VkDescriptorImageInfo texDescriptorSkybox = {};
     texDescriptorSkybox.sampler = deferredSampler;
     texDescriptorSkybox.imageView = skyboxImageView;
     texDescriptorSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(7 * modelDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(6 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -769,63 +787,55 @@ void DeferredRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[7 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 0].dstBinding = 0;
-        descriptorWrites[7 * i + 0].dstArrayElement = 0;
-        descriptorWrites[7 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[7 * i + 0].descriptorCount = 1;
-        descriptorWrites[7 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[7 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[7 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[6 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 0].dstBinding = 0;
+        descriptorWrites[6 * i + 0].dstArrayElement = 0;
+        descriptorWrites[6 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[6 * i + 0].descriptorCount = 1;
+        descriptorWrites[6 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[6 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[6 * i + 0].pTexelBufferView = nullptr;
 
-        descriptorWrites[7 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 1].dstBinding = 1;
-        descriptorWrites[7 * i + 1].dstArrayElement = 0;
-        descriptorWrites[7 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[7 * i + 1].descriptorCount = 1;
-        descriptorWrites[7 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[6 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 1].dstBinding = 1;
+        descriptorWrites[6 * i + 1].dstArrayElement = 0;
+        descriptorWrites[6 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 1].descriptorCount = 1;
+        descriptorWrites[6 * i + 1].pImageInfo = &imageInfo;
 
-        descriptorWrites[7 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 2].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 2].dstBinding = 2;
-        descriptorWrites[7 * i + 2].dstArrayElement = 0;
-        descriptorWrites[7 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[7 * i + 2].descriptorCount = 1;
-        descriptorWrites[7 * i + 2].pImageInfo = &texDescriptorAlbedo;
+        descriptorWrites[6 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 2].dstBinding = 2;
+        descriptorWrites[6 * i + 2].dstArrayElement = 0;
+        descriptorWrites[6 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 2].descriptorCount = 1;
+        descriptorWrites[6 * i + 2].pImageInfo = &texDescriptorAlbedo;
 
-        descriptorWrites[7 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 3].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 3].dstBinding = 3;
-        descriptorWrites[7 * i + 3].dstArrayElement = 0;
-        descriptorWrites[7 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[7 * i + 3].descriptorCount = 1;
-        descriptorWrites[7 * i + 3].pImageInfo = &texDescriptorPosition;
+        descriptorWrites[6 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 3].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 3].dstBinding = 3;
+        descriptorWrites[6 * i + 3].dstArrayElement = 0;
+        descriptorWrites[6 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 3].descriptorCount = 1;
+        descriptorWrites[6 * i + 3].pImageInfo = &texDescriptorPosition;
 
-        descriptorWrites[7 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 4].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 4].dstBinding = 4;
-        descriptorWrites[7 * i + 4].dstArrayElement = 0;
-        descriptorWrites[7 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[7 * i + 4].descriptorCount = 1;
-        descriptorWrites[7 * i + 4].pImageInfo = &texDescriptorNormal;
+        descriptorWrites[6 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 4].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 4].dstBinding = 4;
+        descriptorWrites[6 * i + 4].dstArrayElement = 0;
+        descriptorWrites[6 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 4].descriptorCount = 1;
+        descriptorWrites[6 * i + 4].pImageInfo = &texDescriptorNormal;
 						 
-		descriptorWrites[7 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[7 * i + 5].dstSet = modelDescriptorSets[i];
-		descriptorWrites[7 * i + 5].dstBinding = 5;
-		descriptorWrites[7 * i + 5].dstArrayElement = 0;
-		descriptorWrites[7 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[7 * i + 5].descriptorCount = 1;
-		descriptorWrites[7 * i + 5].pImageInfo = &texDescriptorGrass;
-
-        descriptorWrites[7 * i + 6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[7 * i + 6].dstSet = modelDescriptorSets[i];
-        descriptorWrites[7 * i + 6].dstBinding = 6;
-        descriptorWrites[7 * i + 6].dstArrayElement = 0;
-        descriptorWrites[7 * i + 6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[7 * i + 6].descriptorCount = 1;
-        descriptorWrites[7 * i + 6].pImageInfo = &texDescriptorSkybox;
+		descriptorWrites[6 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[6 * i + 5].dstSet = modelDescriptorSets[i];
+		descriptorWrites[6 * i + 5].dstBinding = 5;
+		descriptorWrites[6 * i + 5].dstArrayElement = 0;
+		descriptorWrites[6 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[6 * i + 5].descriptorCount = 1;
+		descriptorWrites[6 * i + 5].pImageInfo = &texDescriptorSkybox;
     }
 
     // Update descriptor sets
@@ -903,6 +913,40 @@ void DeferredRenderer::CreateTimeDescriptorSet() {
     descriptorWrites[0].pBufferInfo = &timeBufferInfo;
     descriptorWrites[0].pImageInfo = nullptr;
     descriptorWrites[0].pTexelBufferView = nullptr;
+
+    // Update descriptor sets
+    vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void DeferredRenderer::CreateTexDescriptorSet() {
+    // Describe the desciptor set
+    VkDescriptorSetLayout layouts[] = { texDescriptorSetLayout };
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = layouts;
+
+    // Allocate descriptor sets
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &texDescriptorSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate descriptor set");
+    }
+
+    // Configure the descriptors to refer to buffers
+    // Image descriptors for grass texture
+    VkDescriptorImageInfo texDescriptorGrass = {};
+    texDescriptorGrass.sampler = deferredSampler;
+    texDescriptorGrass.imageView = grassImageView;
+    texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = texDescriptorSet;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pImageInfo = &texDescriptorGrass;
 
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
@@ -1280,7 +1324,7 @@ void DeferredRenderer::CreateGrassPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, texDescriptorSetLayout, };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1817,6 +1861,7 @@ DeferredRenderer::~DeferredRenderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, grassComputeDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logicalDevice, texDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 

@@ -20,6 +20,7 @@ public:
     void CreateModelDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
+    void CreateTexDescriptorSetLayout();
 
     void CreateDescriptorPool();
 
@@ -28,6 +29,7 @@ public:
     void CreateGrassDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateComputeDescriptorSets();
+    void CreateTexDescriptorSet();
 
     void CreateGraphicsPipeline();
     void CreateGrassPipeline();
@@ -59,6 +61,7 @@ private:
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
     VkDescriptorSetLayout grassComputeDescriptorSetLayout;
+    VkDescriptorSetLayout texDescriptorSetLayout;
 
     VkDescriptorPool descriptorPool;
 
@@ -67,6 +70,7 @@ private:
     std::vector<VkDescriptorSet> grassDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
     std::vector<VkDescriptorSet> grassComputeDescriptorSets;
+    VkDescriptorSet texDescriptorSet;
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
