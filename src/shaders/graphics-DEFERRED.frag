@@ -87,7 +87,7 @@ vec3 getColorAtUV(vec2 uv) {
 	float noise = smoothNoise(position.xz);
 
 	// Primary Sun light
-	vec3 lightPosition = vec3(10.0 * cos(time.totalTime * 0.025 * 3.14), 2.0, 10.0 * sin(time.totalTime * 0.025 * 3.14));
+	vec3 lightPosition = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
 
@@ -95,7 +95,8 @@ vec3 getColorAtUV(vec2 uv) {
 	
 	float mint = 0.1;
 	float maxt = 30.0;
-	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
+	// DEBUG VIEW
+	float occ = uv.x > 0.5 ? rayMarchShadows(position.xyz, lightDirection, mint, maxt) : 1.0;
 
 	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
@@ -404,7 +405,14 @@ void main() {
 	//fogfactor = 1.0-clamp(exp(-pow(fog_density*fogcoord, 2.0)), 0.0, 1.0);
 
 	// Adding fog to the final color
-	color = mix(color, fogColor, fogfactor);
+	// DEBUG VIEW
+	color = fragTexCoord.x > 0.5 ? mix(color, fogColor, fogfactor) : color;
+
+	// sun
+	// sun's "position"
+	//const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
+	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
+	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
 	if(fragment_pos.y <= 0) {
 		// sample from skybox texture
@@ -423,11 +431,6 @@ void main() {
 		vec2 skyboxUV = vec2(cos(xzAngle) * radius, sin(xzAngle) * radius) * 0.5 + vec2(0.5);
 		vec4 skyColor = texture(samplerSkybox, skyboxUV);//vec4(y_angle, 0.0, xz_angle, 1.0);
 		outColor = mix(vec4(0.768f, 0.8039f, 0.898f, 1.0), skyColor, 0.5);
-		// sun
-		// sun's "position"
-		//const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
-		const vec3 sunPosition = vec3(10.0 * cos(time.totalTime * 0.025 * 3.14), 2.0, 10.0 * sin(time.totalTime * 0.025 * 3.14));
-		const vec3 sunDir = normalize(sunPosition);//normalize(vec3(1.0, 0.333, -0.005));
 		const float angle = acos(dot(lookDir, sunDir));
 		const float maxSunMixFactor = 0.95;
 		float sunMixFactor = angle < 0.010 ? maxSunMixFactor :
@@ -440,6 +443,25 @@ void main() {
 	else {
 		// gamma correction
 		//color = pow( color, vec3(1.0/2.2) );
-		outColor = vec4(color.xyz, 1.0);
+		// sample some points around the sun to infer how occluded it is
+		float xzAngle = atan(sunDir.z, sunDir.x);
+		float radius = 1.0 - (sunDir.y + 1.0) * 0.5;
+		float occlusions = 0.0;
+#if 1
+		for (float i = -1.0; i < 1.1; i += 1.0) {
+			for (float j = -1.0 ; j < 1.1; j += 1.0) {
+				float angle = xzAngle + i * 0.002;
+				float r = radius + j * 0.002;
+				vec2 sampleUV = vec2(cos(angle) * r, sin(angle) * r) * 0.5 + vec2(0.5);
+				vec4 sampleColor = texture(samplerSkybox, sampleUV);
+				if (2.0 * sampleColor.b <= sampleColor.r + sampleColor.g) {
+					occlusions += 1.0;
+				}
+			}
+		}
+		// debug view
+		float cloudFactor = fragTexCoord.x > 0.5 ? (1.0  - (occlusions / 9.0) * 0.2) : 1.0;
+#endif
+		outColor = vec4(color.xyz * cloudFactor, 1.0);
 	}
 }
