@@ -68,7 +68,7 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 		// travel along rd by t
 		vec3 newPos = ro + t * rd;
 		float newH = 1.0 + smoothNoise(newPos.xz * 0.125) * 6.0;
-		if(newH > (originalH)) {
+		if(newH > newPos.y) {
 			return 0.0;
 		}
 		if(t < 5.0 * mint) {
@@ -90,7 +90,7 @@ vec3 getColorAtUV(vec2 uv) {
 	float noise = smoothNoise(position.xz);
 
 	// Primary Sun light
-	vec3 lightPosition = vec3(cos(time.totalTime * 0.025 * 3.14), 20.0 ,sin(time.totalTime * 0.025 * 3.14));
+	vec3 lightPosition = vec3(cos(time.totalTime * 0.025 * 3.14) * 10.0, 2.0 ,sin(time.totalTime * 0.025 * 3.14) * 10.0);
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
 
@@ -133,7 +133,7 @@ vec3 getColorAtUV(vec2 uv) {
 	float ind = clamp(dot(normal, normalize(lightDirection * vec3(-1.0, 0.0, -1.0))), 0.0, 1.0);
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
-	vec3 lightContribution = dotProd * vec3(1.64, 1.27, 0.99) * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
+	vec3 lightContribution = dotProd * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5)) * occ; //vec3(1.64, 1.27, 0.99)s
 	lightContribution += sky * occ;//vec3(0.16, 0.2, 0.28)
 	lightContribution += ind * occ;//vec3(0.4, 0.28, 0.2)
 	return vec3(albedo) * lightContribution + vec3(ambient);
