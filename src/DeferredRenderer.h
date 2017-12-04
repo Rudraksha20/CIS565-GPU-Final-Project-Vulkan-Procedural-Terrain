@@ -105,6 +105,16 @@ private:
     VkFramebuffer deferredFramebuffer;
     VkSampler deferredSampler;
 
+	// Grass texture
+	VkImage grassImage;
+	VkDeviceMemory grassImageMemory;
+	VkImageView grassImageView;
+
+	// Snow texture
+	VkImage snowImage;
+	VkDeviceMemory snowImageMemory;
+	VkImageView snowImageView;
+
     VkSemaphore deferredSemaphore;
 
     std::vector<VkCommandBuffer> commandBuffers;

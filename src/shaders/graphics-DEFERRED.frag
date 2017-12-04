@@ -18,6 +18,8 @@ layout (set = 1, binding = 2) uniform sampler2D samplerAlbedo;
 layout (set = 1, binding = 3) uniform sampler2D samplerPosition;
 layout (set = 1, binding = 4) uniform sampler2D samplerNormal;
 
+layout (set = 1, binding = 5) uniform sampler2D samplerGrass;
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 
@@ -85,7 +87,8 @@ vec3 getColorAtUV(vec2 uv) {
 	
 	// Fragment Position
 	vec4 position = texture(samplerPosition, uv);
-	
+	float noise = smoothNoise(position.xz);
+
 	// Primary Sun light
 	vec3 lightPosition = vec3(cos(time.totalTime * 0.025 * 3.14), 20.0 ,sin(time.totalTime * 0.025 * 3.14));
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
@@ -94,17 +97,23 @@ vec3 getColorAtUV(vec2 uv) {
 	vec4 albedo = texture(samplerAlbedo, uv);
 	
 	float mint = 0.1;
-	float maxt = 50;
+	float maxt = 70;
 	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
 
-	bool s = true;
+	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
+	albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
+	//albedo = (noise < 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
+	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz)), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
+	//albedo = texture(samplerGrass, uv);
+
+	bool s = false;
 	if (s) {
 		if(position.y > 3.5) {
-			albedo = vec4(1.0, 0.98, 0.98, 1.0);
+			albedo = (noise > 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0); //vec4(1.0, 0.98, 0.98, 1.0);
 		} else if(position.y > 3.0 && position.y <= 3.5) {
-			albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz)), vec4(1.0, 0.98, 0.98, 1.0), smoothNoise(position.xz));
+			albedo = (noise > 0.5)? mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise) : vec4(1.0, 0.98, 0.98, 1.0); //mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), noise);
 		} else {
-			albedo = mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz));//vec4(0.0, 0.0, 2.0, 1.0);
+			albedo = (noise < 0.8)?  mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise) : vec4(1.0, 0.98, 0.98, 1.0); //mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise); //vec4(0.0, 0.0, 2.0, 1.0);
 		}
 		//else if(position.y > 2 && position.y < 3.5) {//b + g
 		//	albedo = mix(vec4(0.529, 0.2627, 0.09, 1.0), vec4(0.568, 0.586, 0.129, 1.0), smoothNoise(position.xz));//vec4(0.0, 2.0, 0.0, 1.0);
@@ -125,8 +134,8 @@ vec3 getColorAtUV(vec2 uv) {
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
 	vec3 lightContribution = dotProd * vec3(1.64, 1.27, 0.99) * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
-	lightContribution += sky * vec3(0.16, 0.2, 0.28) * occ;
-	lightContribution += ind * vec3(0.4, 0.28, 0.2) * occ;
+	lightContribution += sky * occ;//vec3(0.16, 0.2, 0.28)
+	lightContribution += ind * occ;//vec3(0.4, 0.28, 0.2)
 	return vec3(albedo) * lightContribution + vec3(ambient);
 }
 
