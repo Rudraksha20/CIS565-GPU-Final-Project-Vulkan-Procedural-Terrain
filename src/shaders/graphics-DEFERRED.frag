@@ -401,6 +401,17 @@ void main() {
 		vec2 skyboxUV = vec2(cos(xzAngle) * radius, sin(xzAngle) * radius) * 0.5 + vec2(0.5);
 		vec4 skyColor = texture(samplerSkybox, skyboxUV);//vec4(y_angle, 0.0, xz_angle, 1.0);
 		outColor = mix(vec4(0.768f, 0.8039f, 0.898f, 1.0), skyColor, 0.5);
+		// sun
+		// sun's "position"
+		const vec3 sunDir = normalize(vec3(1.0, 0.333, -0.005));
+		const float angle = acos(dot(lookDir, sunDir));
+		const float maxSunMixFactor = 0.95;
+		float sunMixFactor = angle < 0.010 ? maxSunMixFactor :
+							 angle < 0.040 ? maxSunMixFactor * (1.0 - (angle - 0.010) / 0.030) :
+							                 0.0;
+		// if color is blue-ish, decrease sun influence to simulate cloud cover
+		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.65;											  
+		outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
 	}
 	else {
 		// gamma correction
