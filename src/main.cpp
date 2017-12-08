@@ -10,9 +10,21 @@
 #include "Image.h"
 #include <iostream>
 
+#define DEFERRED 0
+#define VISIBILITY 1
+#define FORWARD 0
+
 Device* device;
 SwapChain* swapChain;
+#if DEFERRED
 DeferredRenderer* renderer;
+#endif 
+#if VISIBILITY
+VisibilityRenderer* renderer;
+#endif
+#if FORWARD
+Renderer* renderer;
+#endif
 Camera* camera;
 
 namespace {
@@ -228,9 +240,15 @@ int main() {
     scene->AddModel(plane);
     scene->AddBlades(blades);
 
-    //renderer = new Renderer(device, swapChain, scene, camera);
-    renderer = new DeferredRenderer(device, swapChain, scene, camera);
-    //renderer = new VisibilityRenderer(device, swapChain, scene, camera);
+#if DEFERRED
+	renderer = new DeferredRenderer(device, swapChain, scene, camera);
+#endif
+#if VISIBILITY
+	renderer = new VisibilityRenderer(device, swapChain, scene, camera);
+#endif
+#if FORWARD
+	renderer = new Renderer(device, swapChain, scene, camera);
+#endif
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);

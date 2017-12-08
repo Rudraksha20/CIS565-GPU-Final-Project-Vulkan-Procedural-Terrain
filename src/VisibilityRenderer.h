@@ -100,6 +100,16 @@ private:
 
     VkSemaphore deferredSemaphore;
 
+	// Grass texture
+	VkImage grassImage;
+	VkDeviceMemory grassImageMemory;
+	VkImageView grassImageView;
+
+	// skybox texture
+	VkImage skyboxImage;
+	VkDeviceMemory skyboxImageMemory;
+	VkImageView skyboxImageView;
+
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
     VkCommandBuffer deferredCommandBuffer;

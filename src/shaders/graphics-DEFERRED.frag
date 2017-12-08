@@ -93,10 +93,13 @@ vec3 getColorAtUV(vec2 uv) {
 
 	vec4 albedo = texture(samplerAlbedo, uv);
 	
+	const float ambient = 0.15;
+	vec3 normal = normalize(texture(samplerNormal, uv).xyz);
+
 	float mint = 0.1;
 	float maxt = 30.0;
 	// DEBUG VIEW
-	float occ = uv.x > 0.5 ? rayMarchShadows(position.xyz, lightDirection, mint, maxt) : 1.0;
+	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
 
 	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
@@ -117,13 +120,10 @@ vec3 getColorAtUV(vec2 uv) {
 		//	albedo = mix(vec4(0.529, 0.2627, 0.09, 1.0), vec4(0.568, 0.586, 0.129, 1.0), smoothNoise(position.xz));//vec4(0.0, 2.0, 0.0, 1.0);
 		//}
 	}
-
-	const float ambient = 0.15;
-	vec3 normal = normalize(texture(samplerNormal, uv).xyz);
 	
 	// Primary light
 	float dotProd = clamp(dot(normal, lightDirection), 0.0, 1.0);
-	
+
 	// Sky light
 	float sky = clamp(0.5 + normal.y * 0.5, 0.0 , 1.0);
 
@@ -377,7 +377,7 @@ void main() {
 
 	// FXAA
 	//vec3 colorWFXAA = color;
-	color = FXAA(fragTexCoord, color, width, height, FXAA_SPAN_MAX, FXAA_EDGE_THRESHOLD_MAX, FXAA_EDGE_THRESHOLD_MIN);
+	//color = FXAA(fragTexCoord, color, width, height, FXAA_SPAN_MAX, FXAA_EDGE_THRESHOLD_MAX, FXAA_EDGE_THRESHOLD_MIN);
 
 	// FOG
 	vec4 fragment_pos = texture(samplerPosition, fragTexCoord);
@@ -406,7 +406,7 @@ void main() {
 
 	// Adding fog to the final color
 	// DEBUG VIEW
-	color = fragTexCoord.x > 0.5 ? mix(color, fogColor, fogfactor) : color;
+	color = mix(color, fogColor, fogfactor);
 
 	// sun
 	// sun's "position"
@@ -421,7 +421,7 @@ void main() {
 		vec4 skyPos = vec4(fragTexCoord.xy, 1.0, 1.0) * 100.0;
 		vec4 worldSkyPos = inverse(camera.proj * camera.view) * skyPos;
 		//worldSkyPos = normalize(worldSkyPos);
-		vec3 lookDir = normalize(worldSkyPos.xyz - camera.cameraPos);
+		vec3 lookDir = normalize(worldSkyPos.xyz - vec3(camera.cameraPos.x, 0.0, camera.cameraPos.z));
 		float xzAngle = atan(lookDir.z, lookDir.x);//atan(worldSkyPos.z, worldSkyPos.x);
 		float yAngle = asin(worldSkyPos.y);
 		//lookDir.y = (lookDir.y < 0.0) ? (lookDir.y * 0.5 - 0.5) : (lookDir.y * 1.5 - 0.5);
@@ -447,7 +447,7 @@ void main() {
 		float xzAngle = atan(sunDir.z, sunDir.x);
 		float radius = 1.0 - (sunDir.y + 1.0) * 0.5;
 		float occlusions = 0.0;
-#if 1
+#if 0
 		for (float i = -1.0; i < 1.1; i += 1.0) {
 			for (float j = -1.0 ; j < 1.1; j += 1.0) {
 				float angle = xzAngle + i * 0.002;
@@ -460,8 +460,8 @@ void main() {
 			}
 		}
 		// debug view
-		float cloudFactor = fragTexCoord.x > 0.5 ? (1.0  - (occlusions / 9.0) * 0.2) : 1.0;
+		float cloudFactor = (1.0  - (occlusions / 9.0) * 0.2);
 #endif
-		outColor = vec4(color.xyz * cloudFactor, 1.0);
+		outColor = vec4(color.xyz, 1.0);
 	}
 }
