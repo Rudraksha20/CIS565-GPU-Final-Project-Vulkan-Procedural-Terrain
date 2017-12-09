@@ -537,7 +537,7 @@ void VisibilityRenderer::CreateTimeDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
@@ -1196,7 +1196,7 @@ void VisibilityRenderer::CreateGrassPipeline() {
     // Color blending (turned off here, but showing options for learning)
     // --> Configuration per attached framebuffer
     std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 2; i++) {
         VkPipelineColorBlendAttachmentState colorBlendAttachment;
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;

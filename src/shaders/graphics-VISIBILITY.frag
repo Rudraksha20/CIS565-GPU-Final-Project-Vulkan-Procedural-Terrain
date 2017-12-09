@@ -118,7 +118,7 @@ void main() {
 	vec2 uv = vec2(texture(samplerUV, fragTexCoord));
 
 	// Re-compute noise
-	//worldPos.y += smoothNoise(worldPos.xz * 0.125) * 6.0;
+	worldPos.y  = 1.0 + smoothNoise(worldPos.xz * 0.125) * 6.0;
 
 	// Re-compute normal
 	float deviation = 0.0001;
@@ -159,7 +159,7 @@ void main() {
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
-	if(worldPos.y <= 0) {
+	if(texture(samplerVisibility, fragTexCoord).y <= 0) {
 		// sample from skybox texture
 		// get sky's "position"
 		// 100.0 = far plane
@@ -212,4 +212,5 @@ void main() {
 
 	//outColor = vec4(sin(time.totalTime * 2 * 3.14 / 180));
 	//outColor = texture(samplerGrass, uv);
+	//outColor = vec4(abs(normal), 1.0);
 }
