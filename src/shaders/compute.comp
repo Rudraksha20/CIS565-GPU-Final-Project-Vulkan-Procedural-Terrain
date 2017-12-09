@@ -162,7 +162,7 @@ void main() {
 	const float tileDim = blade.v0.w;
 
 	// Update the position of the terrain points based on the movement of the camera
-	vec4 eyePos = inverse(camera.view) * vec4(0, 0, 0, 1);
+	vec4 eyePos = vec4(camera.cameraPos, 1.0);
 
 	blade.v0.x += floor(eyePos.x / tileDim) * tileDim;
 	blade.v0.z += floor(eyePos.z / tileDim) * tileDim;

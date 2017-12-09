@@ -10,9 +10,8 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 layout (set = 1, binding = 2) uniform sampler2D samplerVisibility;
-layout (set = 1, binding = 3) uniform sampler2D samplerUV;
-layout (set = 1, binding = 4) uniform sampler2D samplerGrass;
-layout (set = 1, binding = 5) uniform sampler2D samplerSkybox;
+layout (set = 1, binding = 3) uniform sampler2D samplerGrass;
+layout (set = 1, binding = 4) uniform sampler2D samplerSkybox;
 
 
 layout(set = 2, binding = 0) uniform Time {
@@ -115,10 +114,11 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 
 void main() {
 	vec4 worldPos = texture(samplerVisibility, fragTexCoord);
-	vec2 uv = vec2(texture(samplerUV, fragTexCoord));
+	vec2 uv = worldPos.yw;
 
 	// Re-compute noise
-	worldPos.y  = 1.0 + smoothNoise(worldPos.xz * 0.125) * 6.0;
+	worldPos.y = 1.0 + smoothNoise(worldPos.xz * 0.125) * 6.0;
+	worldPos.w = 1.0;
 
 	// Re-compute normal
 	float deviation = 0.0001;
@@ -159,7 +159,7 @@ void main() {
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
-	if(texture(samplerVisibility, fragTexCoord).y <= 0) {
+	if(uv.y <= 0.0) {
 		// sample from skybox texture
 		// get sky's "position"
 		// 100.0 = far plane
@@ -213,4 +213,6 @@ void main() {
 	//outColor = vec4(sin(time.totalTime * 2 * 3.14 / 180));
 	//outColor = texture(samplerGrass, uv);
 	//outColor = vec4(abs(normal), 1.0);
+	//outColor = vec4(abs(mod(worldPos.x, 5.0)) / 5.0, abs(mod(worldPos.z, 5.0)) / 5.0, 0.0, 1.0);
+	//outColor = vec4(vec3(uv.y), 1.0);
 }

@@ -110,11 +110,6 @@ private:
 	VkDeviceMemory skyboxImageMemory;
 	VkImageView skyboxImageView;
 
-	// uv
-	VkImage deferredUVImage;
-	VkDeviceMemory deferredUVImageMemory;
-	VkImageView deferredUVImageView;
-
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
     VkCommandBuffer deferredCommandBuffer;
