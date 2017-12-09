@@ -26,14 +26,32 @@ VisibilityRenderer* renderer;
 Renderer* renderer;
 #endif
 Camera* camera;
+Scene* scene;
+VkSurfaceKHR surface;
+Instance* instance;
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
 
+        delete renderer;
         vkDeviceWaitIdle(device->GetVkDevice());
-        swapChain->Recreate();
-        renderer->RecreateFrameResources();
+        delete swapChain;
+
+        if (glfwCreateWindowSurface(instance->GetVkInstance(), GetGLFWWindow(), nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create window surface");
+        }
+
+        instance->PickPhysicalDevice({ VK_KHR_SWAPCHAIN_EXTENSION_NAME }, QueueFlagBit::GraphicsBit | QueueFlagBit::TransferBit | QueueFlagBit::ComputeBit | QueueFlagBit::PresentBit, surface);
+
+        swapChain = device->CreateSwapChain(surface, 5);
+        /*
+        delete camera;
+        camera = new Camera(device, (float)width / (float)height);
+        */
+        camera->UpdateAspectRatio((float)width / (float)height);
+
+        renderer = new DeferredRenderer(device, swapChain, scene, camera);
     }
 
     bool leftMouseDown = false;
@@ -175,9 +193,8 @@ int main() {
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    Instance* instance = new Instance(applicationName, glfwExtensionCount, glfwExtensions);
+    instance = new Instance(applicationName, glfwExtensionCount, glfwExtensions);
 
-    VkSurfaceKHR surface;
     if (glfwCreateWindowSurface(instance->GetVkInstance(), GetGLFWWindow(), nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface");
     }
@@ -236,7 +253,7 @@ int main() {
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
-    Scene* scene = new Scene(device);
+    scene = new Scene(device);
     scene->AddModel(plane);
     scene->AddBlades(blades);
 
