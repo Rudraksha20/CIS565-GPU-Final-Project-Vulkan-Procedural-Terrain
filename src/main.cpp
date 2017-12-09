@@ -10,19 +10,23 @@
 #include "Image.h"
 #include <iostream>
 
-#define DEFERRED 0
-#define VISIBILITY 0
-#define FORWARD 1
+#define DEFERRED 1
+#define VISIBILITY 2
+#define FORWARD 3
+
+#define RENDERER_TYPE VISIBILITY
+
+#if RENDERER_TYPE != DEFERRED && RENDERER_TYPE != VISIBILITY && RENDERER_TYPE != FORWARD
+#error "Invalid renderer type specified in main.cpp"
+#endif
 
 Device* device;
 SwapChain* swapChain;
-#if DEFERRED
+#if RENDERER_TYPE == DEFERRED
 DeferredRenderer* renderer;
-#endif 
-#if VISIBILITY
+#elif RENDERER_TYPE == VISIBILITY
 VisibilityRenderer* renderer;
-#endif
-#if FORWARD
+#elif RENDERER_TYPE == FORWARD
 Renderer* renderer;
 #endif
 Camera* camera;
@@ -50,8 +54,13 @@ namespace {
         camera = new Camera(device, (float)width / (float)height);
         */
         camera->UpdateAspectRatio((float)width / (float)height);
-
+#if RENDERER_TYPE == DEFERRED
         renderer = new DeferredRenderer(device, swapChain, scene, camera);
+#elif RENDERER_TYPE == VISIBILITY
+        renderer = new VisibilityRenderer(device, swapChain, scene, camera);
+#elif RENDERER_TYPE == FORWARD
+        renderer = new Renderer(device, swapChain, scene, camera);
+#endif
     }
 
     bool leftMouseDown = false;
@@ -257,13 +266,11 @@ int main() {
     scene->AddModel(plane);
     scene->AddBlades(blades);
 
-#if DEFERRED
+#if RENDERER_TYPE == DEFERRED
 	renderer = new DeferredRenderer(device, swapChain, scene, camera);
-#endif
-#if VISIBILITY
+#elif RENDERER_TYPE == VISIBILITY
 	renderer = new VisibilityRenderer(device, swapChain, scene, camera);
-#endif
-#if FORWARD
+#elif RENDERER_TYPE == FORWARD
 	renderer = new Renderer(device, swapChain, scene, camera);
 #endif
 
