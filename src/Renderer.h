@@ -19,6 +19,7 @@ public:
     void CreateModelDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
+	void CreateTexDescriptorSetLayout();
 
     void CreateDescriptorPool();
 
@@ -27,6 +28,7 @@ public:
     void CreateGrassDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateComputeDescriptorSets();
+	void CreateTexDescriptorSet();
 
     void CreateGraphicsPipeline();
     void CreateGrassPipeline();
@@ -57,6 +59,7 @@ private:
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
     VkDescriptorSetLayout grassComputeDescriptorSetLayout;
+	VkDescriptorSetLayout texDescriptorSetLayout;
     
     VkDescriptorPool descriptorPool;
 
@@ -65,6 +68,7 @@ private:
     std::vector<VkDescriptorSet> grassDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
     std::vector<VkDescriptorSet> grassComputeDescriptorSets;
+	std::vector<VkDescriptorSet> texDescriptorSet;
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
@@ -83,6 +87,19 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
     std::vector<VkFramebuffer> framebuffers;
+
+	// sampler
+	VkSampler Sampler;
+
+	// Grass texture
+	VkImage grassImage;
+	VkDeviceMemory grassImageMemory;
+	VkImageView grassImageView;
+
+	// skybox texture
+	VkImage skyboxImage;
+	VkDeviceMemory skyboxImageMemory;
+	VkImageView skyboxImageView;
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;

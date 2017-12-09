@@ -224,7 +224,7 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
 
     // Create a depth attachment reference
     VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 1;// 1; newly added
+    depthAttachmentRef.attachment = 2;// 1; newly added
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // Create subpass description
@@ -398,7 +398,7 @@ void VisibilityRenderer::RecordDeferredCommandBuffer() {
     // Clear values for all attachments written in the fragment sahder
     std::array<VkClearValue, 3> clearValues;
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[1].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f} };
     clearValues[2].depthStencil = { 1.0f, 0 };
 
     // Set up render pass begin
@@ -624,7 +624,7 @@ void VisibilityRenderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 8;
+    poolInfo.maxSets = 9;
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -1224,7 +1224,7 @@ void VisibilityRenderer::CreateGrassPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1424,6 +1424,11 @@ void VisibilityRenderer::DestroyFrameResources() {
     vkDestroyImage(logicalDevice, deferredDepthImage, nullptr);
 
     vkDestroyFramebuffer(logicalDevice, deferredFramebuffer, nullptr);
+
+	// uv
+	vkDestroyImageView(logicalDevice, deferredUVImageView, nullptr);
+	vkFreeMemory(logicalDevice, deferredUVImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, deferredUVImage, nullptr);
 
 	// free skybox texture
 	vkDestroyImageView(logicalDevice, skyboxImageView, nullptr);

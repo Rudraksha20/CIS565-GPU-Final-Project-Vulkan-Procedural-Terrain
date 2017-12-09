@@ -11,8 +11,8 @@
 #include <iostream>
 
 #define DEFERRED 0
-#define VISIBILITY 1
-#define FORWARD 0
+#define VISIBILITY 0
+#define FORWARD 1
 
 Device* device;
 SwapChain* swapChain;

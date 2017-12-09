@@ -23,12 +23,14 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     CreateCameraDescriptorSetLayout();
     CreateModelDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
+	CreateTexDescriptorSetLayout();
     CreateComputeDescriptorSetLayout();
     CreateDescriptorPool();
     CreateCameraDescriptorSet();
     CreateModelDescriptorSets();
     CreateGrassDescriptorSets();
     CreateTimeDescriptorSet();
+	CreateTexDescriptorSet();
     CreateComputeDescriptorSets();
     CreateFrameResources();
     CreateGraphicsPipeline();
@@ -123,6 +125,67 @@ void Renderer::CreateRenderPass() {
     if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass");
     }
+
+	// Load skybox texure
+	VkCommandPoolCreateInfo transferPoolInfo = {};
+	transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	transferPoolInfo.queueFamilyIndex = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Transfer];
+	transferPoolInfo.flags = 0;
+
+	VkCommandPool transferCommandPool;
+	if (vkCreateCommandPool(device->GetVkDevice(), &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool for transferring skybox texture");
+	}
+
+	Image::FromFile(device,
+		transferCommandPool,
+		"images/ThickCloudsWaterPolar2048.png",
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		skyboxImage,
+		skyboxImageMemory
+	);
+
+	skyboxImageView = Image::CreateView(device, skyboxImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	// Load grass texure
+	Image::FromFile(device,
+		transferCommandPool,
+		"images/grass_tex.jpg",
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		grassImage,
+		grassImageMemory
+	);
+
+	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+
+	grassImageView = Image::CreateView(device, grassImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	// Create sampler for tex buffers
+	VkSamplerCreateInfo sampler = {};
+	sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampler.magFilter = VK_FILTER_NEAREST;
+	sampler.minFilter = VK_FILTER_NEAREST;
+	sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	sampler.addressModeV = sampler.addressModeU;
+	sampler.addressModeW = sampler.addressModeU;
+	sampler.mipLodBias = 0.0f;
+	sampler.maxAnisotropy = 1.0f;
+	sampler.minLod = 0.0f;
+	sampler.maxLod = 1.0f;
+	sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+	if (vkCreateSampler(logicalDevice, &sampler, nullptr, &Sampler) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create DEFERRED sampler");
+	}
 }
 
 void Renderer::CreateCameraDescriptorSetLayout() {
@@ -197,6 +260,34 @@ void Renderer::CreateTimeDescriptorSetLayout() {
     }
 }
 
+void Renderer::CreateTexDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding grassImageLayoutBinding = {};
+	grassImageLayoutBinding.binding = 0;
+	grassImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	grassImageLayoutBinding.descriptorCount = 1;
+	grassImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	grassImageLayoutBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding skyboxImageLayoutBinding = {};
+	skyboxImageLayoutBinding.binding = 0;
+	skyboxImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	skyboxImageLayoutBinding.descriptorCount = 1;
+	skyboxImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	skyboxImageLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { grassImageLayoutBinding, skyboxImageLayoutBinding };
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &texDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+}
+
 void Renderer::CreateComputeDescriptorSetLayout() {
     // TODOX: Create the descriptor set layout for the compute pipeline
     // Remember this is like a class definition stating why types of information
@@ -244,7 +335,7 @@ void Renderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1},
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 2 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -267,7 +358,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 5;
+    poolInfo.maxSets = 7;
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -436,6 +527,56 @@ void Renderer::CreateTimeDescriptorSet() {
 
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void Renderer::CreateTexDescriptorSet() {
+	texDescriptorSet.resize(2);
+
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { texDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(texDescriptorSet.size());
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, texDescriptorSet.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	// Configure the descriptors to refer to buffers
+	// Image descriptors for grass texture
+	VkDescriptorImageInfo texDescriptorGrass = {};
+	texDescriptorGrass.sampler = Sampler;
+	texDescriptorGrass.imageView = grassImageView;
+	texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	// Image descriptors for skybox texture
+	VkDescriptorImageInfo texDescriptorSkybox = {};
+	texDescriptorGrass.sampler = Sampler;
+	texDescriptorGrass.imageView = skyboxImageView;
+	texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[0].dstSet = texDescriptorSet[0];
+	descriptorWrites[0].dstBinding = 0;
+	descriptorWrites[0].dstArrayElement = 0;
+	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrites[0].descriptorCount = 1;
+	descriptorWrites[0].pImageInfo = &texDescriptorGrass;
+
+	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[1].dstSet = texDescriptorSet[1];
+	descriptorWrites[1].dstBinding = 1;
+	descriptorWrites[1].dstArrayElement = 0;
+	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrites[1].descriptorCount = 1;
+	descriptorWrites[1].pImageInfo = &texDescriptorSkybox;
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
 void Renderer::CreateComputeDescriptorSets() {
@@ -804,7 +945,7 @@ void Renderer::CreateGrassPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, texDescriptorSetLayout, };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -993,6 +1134,16 @@ void Renderer::DestroyFrameResources() {
     for (size_t i = 0; i < framebuffers.size(); i++) {
         vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
     }
+
+	// free skybox texture
+	vkDestroyImageView(logicalDevice, skyboxImageView, nullptr);
+	vkFreeMemory(logicalDevice, skyboxImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, skyboxImage, nullptr);
+
+	// Destroy grass texture resources
+	vkDestroyImageView(logicalDevice, grassImageView, nullptr);
+	vkFreeMemory(logicalDevice, grassImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, grassImage, nullptr);
 }
 
 void Renderer::RecreateFrameResources() {
@@ -1287,6 +1438,7 @@ Renderer::~Renderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, grassComputeDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, texDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
@@ -1294,4 +1446,6 @@ Renderer::~Renderer() {
     DestroyFrameResources();
     vkDestroyCommandPool(logicalDevice, computeCommandPool, nullptr);
     vkDestroyCommandPool(logicalDevice, graphicsCommandPool, nullptr);
+	vkDestroySampler(logicalDevice, Sampler, nullptr);
 }
+

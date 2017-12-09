@@ -15,13 +15,6 @@ layout(location = 3) in vec4 fs_pos;
 layout(location = 0) out vec4 outVisibility;
 layout(location = 1) out vec4 outUV;
 
-float pack(vec2 uv) {
-	int x = int(floor(uv.x * 100));
-	int y = int(floor(uv.y * 100));
-	//uv.y = uv.y * (4096 - 1);
-	return (x * 100) + y;
-}
-
 void main() {
 #if 0
 	if (fs_color.w > 0.0) {

@@ -113,20 +113,9 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 	return vec3(albedo) * occ * lightContribution + vec3(ambient);
 }
 
-vec2 unpack(float iUV) {
-	vec2 outUV = vec2(0.0); 
-	int newUV = int(iUV);
-	float y = fract(newUV / 100);
-	float x = ((newUV / 100) - y) / 100;
-	outUV.x = x;//(iUV - y) / 100;//mod(iUV, 4096);
-	outUV.y = y;//y;//floor(iUV / 4096);
-	return outUV;// / (4096 - 1);
-}
-
 void main() {
-	vec4 viz = texture(samplerVisibility, fragTexCoord);
-	vec4 worldPos = vec4(viz.x, viz.y, viz.z, 1.0);
-	vec2 uv = texture(samplerUV, fragTexCoord).xy; //unpack(viz.w);//viz.yw; // not used yet
+	vec4 worldPos = texture(samplerVisibility, fragTexCoord);
+	vec2 uv = vec2(texture(samplerUV, fragTexCoord));
 
 	// Re-compute noise
 	//worldPos.y += smoothNoise(worldPos.xz * 0.125) * 6.0;
@@ -151,7 +140,7 @@ void main() {
     float dist = length(vec3(cam_to_point));
 	cam_to_point = normalize(cam_to_point);
     float fogcoord = dist;
-    float fog_density = 0.08;
+    float fog_density = 0.09;
     float fogEnd = 50.0;
     float fogStart = 0.0;
     float fogfactor = 0.0;
@@ -170,14 +159,14 @@ void main() {
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
-	if(viz.y <= 0) {
+	if(worldPos.y <= 0) {
 		// sample from skybox texture
 		// get sky's "position"
 		// 100.0 = far plane
 		vec4 skyPos = vec4(fragTexCoord.xy, 1.0, 1.0) * 100.0;
 		vec4 worldSkyPos = inverse(camera.proj * camera.view) * skyPos;
 		//worldSkyPos = normalize(worldSkyPos);
-		vec3 lookDir = normalize(worldSkyPos.xyz - vec3(camera.cameraPos.x, 0.0, camera.cameraPos.z));
+		vec3 lookDir = normalize(worldSkyPos.xyz - camera.cameraPos);
 		float xzAngle = atan(lookDir.z, lookDir.x);//atan(worldSkyPos.z, worldSkyPos.x);
 		float yAngle = asin(worldSkyPos.y);
 		//lookDir.y = (lookDir.y < 0.0) ? (lookDir.y * 0.5 - 0.5) : (lookDir.y * 1.5 - 0.5);
@@ -195,8 +184,6 @@ void main() {
 		// if color is blue-ish, decrease sun influence to simulate cloud cover
 		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.35;											  
 		outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
-
-		//outColor = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 	else {
 		// gamma correction
