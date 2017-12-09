@@ -164,9 +164,10 @@ void Renderer::CreateRenderPass() {
 		grassImageMemory
 	);
 
-	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
 	grassImageView = Image::CreateView(device, grassImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+
 
 	// Create sampler for tex buffers
 	VkSamplerCreateInfo sampler = {};
@@ -244,7 +245,7 @@ void Renderer::CreateTimeDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
@@ -269,7 +270,7 @@ void Renderer::CreateTexDescriptorSetLayout() {
 	grassImageLayoutBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutBinding skyboxImageLayoutBinding = {};
-	skyboxImageLayoutBinding.binding = 0;
+	skyboxImageLayoutBinding.binding = 1;
 	skyboxImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	skyboxImageLayoutBinding.descriptorCount = 1;
 	skyboxImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -335,7 +336,7 @@ void Renderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1},
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 2 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 3 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -530,18 +531,17 @@ void Renderer::CreateTimeDescriptorSet() {
 }
 
 void Renderer::CreateTexDescriptorSet() {
-	texDescriptorSet.resize(2);
 
 	// Describe the desciptor set
 	VkDescriptorSetLayout layouts[] = { texDescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(texDescriptorSet.size());
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(1);
 	allocInfo.pSetLayouts = layouts;
 
 	// Allocate descriptor sets
-	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, texDescriptorSet.data()) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &texDescriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate descriptor set");
 	}
 
@@ -554,13 +554,13 @@ void Renderer::CreateTexDescriptorSet() {
 
 	// Image descriptors for skybox texture
 	VkDescriptorImageInfo texDescriptorSkybox = {};
-	texDescriptorGrass.sampler = Sampler;
-	texDescriptorGrass.imageView = skyboxImageView;
-	texDescriptorGrass.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	texDescriptorSkybox.sampler = Sampler;
+	texDescriptorSkybox.imageView = skyboxImageView;
+	texDescriptorSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = texDescriptorSet[0];
+	descriptorWrites[0].dstSet = texDescriptorSet;
 	descriptorWrites[0].dstBinding = 0;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -568,7 +568,7 @@ void Renderer::CreateTexDescriptorSet() {
 	descriptorWrites[0].pImageInfo = &texDescriptorGrass;
 
 	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[1].dstSet = texDescriptorSet[1];
+	descriptorWrites[1].dstSet = texDescriptorSet;
 	descriptorWrites[1].dstBinding = 1;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -771,7 +771,7 @@ void Renderer::CreateGraphicsPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, texDescriptorSetLayout };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -945,7 +945,7 @@ void Renderer::CreateGrassPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, texDescriptorSetLayout, };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, texDescriptorSetLayout };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1278,7 +1278,8 @@ void Renderer::RecordCommandBuffers() {
             vkCmdBindIndexBuffer(commandBuffers[i], scene->GetModels()[j]->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
             // Bind the descriptor set for each model
-            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &modelDescriptorSets[j], 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 2, 1, &texDescriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
 
             // Draw
             std::vector<uint32_t> indices = scene->GetModels()[j]->getIndices();

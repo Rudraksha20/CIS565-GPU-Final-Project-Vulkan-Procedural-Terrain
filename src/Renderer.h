@@ -68,7 +68,7 @@ private:
     std::vector<VkDescriptorSet> grassDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
     std::vector<VkDescriptorSet> grassComputeDescriptorSets;
-	std::vector<VkDescriptorSet> texDescriptorSet;
+	VkDescriptorSet texDescriptorSet;
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout grassPipelineLayout;
