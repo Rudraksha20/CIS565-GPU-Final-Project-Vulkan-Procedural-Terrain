@@ -12,6 +12,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) out vec2 fs_uv;
 layout(location = 1) out vec3 fs_normal;
 layout(location = 2) out vec4 fs_color;
+layout(location = 3) out vec4 fs_pos;
 
 layout(location = 0) patch in vec4 tese_v1;
 layout(location = 1) patch in vec4 tese_v2;
@@ -63,6 +64,8 @@ void main() {
 	worldPos.y += smoothNoise(worldPos.xz * 0.125) * 6.0;
 	worldPos.w = 1.0;
 
+	fs_pos = worldPos;
+
 	mat4 viewProj = camera.proj * camera.view;
 	gl_Position = viewProj * worldPos;
 	fs_color = vec4(noise(worldPos.yy * 0.1 + worldPos.x * worldPos.z * 0.2), noise(worldPos.yy * worldPos.yy * worldPos.yy), noise(worldPos.yy * worldPos.x * worldPos.z * 0.1), 1.0);
@@ -79,8 +82,7 @@ void main() {
 	fs_color.z = tese_v1.y + (tese_v1.w - tese_v1.y) * v;
 	fs_color.z /= 250.0;
 	*/
-	fs_uv.x = (0.49 <= u && u <= 0.5) ? 1.0 : 0.0;
-	fs_uv.y = (0.24 <= v && v <= 0.26) ? 1.0 : 0.0;
+	fs_uv = vec2(u, v);
 
 	// Calculating the normal
 	float deviation = 0.0001;
