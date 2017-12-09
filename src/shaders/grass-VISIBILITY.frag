@@ -13,6 +13,14 @@ layout(location = 2) in vec4 fs_color;
 layout(location = 3) in vec4 fs_pos;
 
 layout(location = 0) out vec4 outVisibility;
+layout(location = 1) out vec4 outUV;
+
+float pack(vec2 uv) {
+	int x = int(floor(uv.x * 100));
+	int y = int(floor(uv.y * 100));
+	//uv.y = uv.y * (4096 - 1);
+	return (x * 100) + y;
+}
 
 void main() {
 #if 0
@@ -37,5 +45,6 @@ void main() {
 	color = color * dotProd + ambient;
 #endif
 
-	outVisibility = vec4(fs_pos.x, fs_uv.x, fs_pos.z, fs_uv.y);
+	outVisibility = vec4(fs_pos.x, fs_pos.y, fs_pos.z, 1.0);
+	outUV = vec4(fs_uv.x, fs_uv.y, 1.0, 1.0);
 }

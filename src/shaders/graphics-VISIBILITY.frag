@@ -10,8 +10,9 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 1) uniform sampler2D texSampler;
 
 layout (set = 1, binding = 2) uniform sampler2D samplerVisibility;
-layout (set = 1, binding = 3) uniform sampler2D samplerGrass;
-layout (set = 1, binding = 4) uniform sampler2D samplerSkybox;
+layout (set = 1, binding = 3) uniform sampler2D samplerUV;
+layout (set = 1, binding = 4) uniform sampler2D samplerGrass;
+layout (set = 1, binding = 5) uniform sampler2D samplerSkybox;
 
 
 layout(set = 2, binding = 0) uniform Time {
@@ -112,13 +113,23 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 	return vec3(albedo) * occ * lightContribution + vec3(ambient);
 }
 
+vec2 unpack(float iUV) {
+	vec2 outUV = vec2(0.0); 
+	int newUV = int(iUV);
+	float y = fract(newUV / 100);
+	float x = ((newUV / 100) - y) / 100;
+	outUV.x = x;//(iUV - y) / 100;//mod(iUV, 4096);
+	outUV.y = y;//y;//floor(iUV / 4096);
+	return outUV;// / (4096 - 1);
+}
+
 void main() {
 	vec4 viz = texture(samplerVisibility, fragTexCoord);
-	vec4 worldPos = vec4(viz.x, 1.0, viz.z, 1.0);
-	vec2 uv = viz.yw; // not used yet
+	vec4 worldPos = vec4(viz.x, viz.y, viz.z, 1.0);
+	vec2 uv = texture(samplerUV, fragTexCoord).xy; //unpack(viz.w);//viz.yw; // not used yet
 
 	// Re-compute noise
-	worldPos.y += smoothNoise(worldPos.xz * 0.125) * 6.0;
+	//worldPos.y += smoothNoise(worldPos.xz * 0.125) * 6.0;
 
 	// Re-compute normal
 	float deviation = 0.0001;
@@ -159,7 +170,7 @@ void main() {
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
-	if(worldPos.y <= 0) {
+	if(viz.y <= 0) {
 		// sample from skybox texture
 		// get sky's "position"
 		// 100.0 = far plane
@@ -184,6 +195,8 @@ void main() {
 		// if color is blue-ish, decrease sun influence to simulate cloud cover
 		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.35;											  
 		outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
+
+		//outColor = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 	else {
 		// gamma correction
@@ -209,4 +222,7 @@ void main() {
 #endif
 		outColor = vec4(color.xyz, 1.0);
 	}
+
+	//outColor = vec4(sin(time.totalTime * 2 * 3.14 / 180));
+	//outColor = texture(samplerGrass, uv);
 }

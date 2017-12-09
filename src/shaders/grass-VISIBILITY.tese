@@ -80,8 +80,8 @@ void main() {
 	fs_color.z = tese_v1.y + (tese_v1.w - tese_v1.y) * v;
 	fs_color.z /= 250.0;
 	*/
-	fs_uv.x = (0.49 <= u && u <= 0.5) ? 1.0 : 0.0;
-	fs_uv.y = (0.24 <= v && v <= 0.26) ? 1.0 : 0.0;
+	fs_uv.x = u;//(0.49 <= u && u <= 0.5) ? 1.0 : 0.0;
+	fs_uv.y = v;//(0.24 <= v && v <= 0.26) ? 1.0 : 0.0;
 
 	// Calculating the normal
 	float deviation = 0.0001;

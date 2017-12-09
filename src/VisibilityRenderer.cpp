@@ -190,6 +190,22 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     visibilityAttachmentRef.attachment = 0;
     visibilityAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	// uv buffer attachment represented by one of the images from the swap chain
+	VkAttachmentDescription uvAttachment = {};
+	uvAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;// swapChain->GetVkImageFormat();
+	uvAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	uvAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	uvAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	uvAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	uvAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	uvAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	uvAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	// Create a uv attachment reference to be used with subpass
+	VkAttachmentReference uvAttachmentRef = {};
+	uvAttachmentRef.attachment = 1;
+	uvAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
     // Depth buffer attachment
     VkFormat depthFormat = device->GetInstance()->GetSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     VkAttachmentDescription depthAttachment = {};
@@ -204,6 +220,7 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
 
     std::vector<VkAttachmentReference> colorDeferredReferences;
     colorDeferredReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+	colorDeferredReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 
     // Create a depth attachment reference
     VkAttachmentReference depthAttachmentRef = {};
@@ -217,7 +234,7 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     subpass.pColorAttachments = colorDeferredReferences.data();							 // " "
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::array<VkAttachmentDescription, 2> attachments = { visibilityAttachment, depthAttachment, };
+    std::array<VkAttachmentDescription, 3> attachments = { visibilityAttachment, uvAttachment, depthAttachment, };
 
     // newly added 
     // Use subpass dependencies for attachment layput transitions
@@ -281,6 +298,21 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     // Create viz image view
     deferredVisibilityImageView = Image::CreateView(device, deferredVisibilityImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
+	// Create uv image
+	Image::Create(
+		device,
+		swapChain->GetVkExtent().width,
+		swapChain->GetVkExtent().height,
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		deferredUVImage,
+		deferredUVImageMemory);
+
+	// Create position image view
+	deferredUVImageView = Image::CreateView(device, deferredUVImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
     // CREATE DEPTH IMAGE (deferred depth)
     Image::Create(device,
         swapChain->GetVkExtent().width,
@@ -296,9 +328,10 @@ void VisibilityRenderer::CreateDeferredRenderPass() {
     // DTODO: may not need 2nd bit at end
     deferredDepthImageView = Image::CreateView(device, deferredDepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    std::array<VkImageView, 2> imageViews;
+    std::array<VkImageView, 3> imageViews;
     imageViews[0] = deferredVisibilityImageView;
-    imageViews[1] = deferredDepthImageView;
+	imageViews[1] = deferredUVImageView;
+    imageViews[2] = deferredDepthImageView;
 
     // Create deferred framebuffers
 
@@ -363,9 +396,10 @@ void VisibilityRenderer::RecordDeferredCommandBuffer() {
     beginInfo.pInheritanceInfo = nullptr;
 
     // Clear values for all attachments written in the fragment sahder
-    std::array<VkClearValue, 2> clearValues;
+    std::array<VkClearValue, 3> clearValues;
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+	clearValues[1].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+    clearValues[2].depthStencil = { 1.0f, 0 };
 
     // Set up render pass begin
     // This will clear values in G-buffer
@@ -462,22 +496,29 @@ void VisibilityRenderer::CreateModelDescriptorSetLayout() {
     visibilityImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     visibilityImageLayoutBinding.pImmutableSamplers = nullptr;
 
+	VkDescriptorSetLayoutBinding uvImageLayoutBinding = {};
+	uvImageLayoutBinding.binding = 3;
+	uvImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	uvImageLayoutBinding.descriptorCount = 1;
+	uvImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	uvImageLayoutBinding.pImmutableSamplers = nullptr;
+
 	VkDescriptorSetLayoutBinding grassImageLayoutBinding = {};
-	grassImageLayoutBinding.binding = 3;
+	grassImageLayoutBinding.binding = 4;
 	grassImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	grassImageLayoutBinding.descriptorCount = 1;
 	grassImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	grassImageLayoutBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutBinding skyboxImageLayoutBinding = {};
-	skyboxImageLayoutBinding.binding = 4;
+	skyboxImageLayoutBinding.binding = 5;
 	skyboxImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	skyboxImageLayoutBinding.descriptorCount = 1;
 	skyboxImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	skyboxImageLayoutBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding, 
-        visibilityImageLayoutBinding, grassImageLayoutBinding, skyboxImageLayoutBinding, };
+        visibilityImageLayoutBinding, uvImageLayoutBinding, grassImageLayoutBinding, skyboxImageLayoutBinding, };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -560,7 +601,7 @@ void VisibilityRenderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 9 + scene->GetBlades().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 16 + scene->GetBlades().size()) },
 
         // Models + Blades
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
@@ -583,7 +624,7 @@ void VisibilityRenderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 7;
+    poolInfo.maxSets = 8;
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -647,6 +688,12 @@ void VisibilityRenderer::CreateModelDescriptorSets() {
     texDescriptorVisibility.imageView = deferredVisibilityImageView;
     texDescriptorVisibility.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+	// Image descriptors for the offscreen uv attachments
+	VkDescriptorImageInfo texDescriptorUV = {};
+	texDescriptorUV.sampler = deferredSampler;
+	texDescriptorUV.imageView = deferredUVImageView;
+	texDescriptorUV.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 	// Image descriptors for grass texture
 	VkDescriptorImageInfo texDescriptorGrass = {};
 	texDescriptorGrass.sampler = deferredSampler;
@@ -659,7 +706,7 @@ void VisibilityRenderer::CreateModelDescriptorSets() {
 	texDescriptorSkybox.imageView = skyboxImageView;
 	texDescriptorSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(5 * modelDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(6 * modelDescriptorSets.size());
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
@@ -673,47 +720,55 @@ void VisibilityRenderer::CreateModelDescriptorSets() {
         imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
         imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
-        descriptorWrites[5 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 0].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 0].dstBinding = 0;
-        descriptorWrites[5 * i + 0].dstArrayElement = 0;
-        descriptorWrites[5 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[5 * i + 0].descriptorCount = 1;
-        descriptorWrites[5 * i + 0].pBufferInfo = &modelBufferInfo;
-        descriptorWrites[5 * i + 0].pImageInfo = nullptr;
-        descriptorWrites[5 * i + 0].pTexelBufferView = nullptr;
+        descriptorWrites[6 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 0].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 0].dstBinding = 0;
+        descriptorWrites[6 * i + 0].dstArrayElement = 0;
+        descriptorWrites[6 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[6 * i + 0].descriptorCount = 1;
+        descriptorWrites[6 * i + 0].pBufferInfo = &modelBufferInfo;
+        descriptorWrites[6 * i + 0].pImageInfo = nullptr;
+        descriptorWrites[6 * i + 0].pTexelBufferView = nullptr;
 						 
-        descriptorWrites[5 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 1].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 1].dstBinding = 1;
-        descriptorWrites[5 * i + 1].dstArrayElement = 0;
-        descriptorWrites[5 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 1].descriptorCount = 1;
-        descriptorWrites[5 * i + 1].pImageInfo = &imageInfo;
+        descriptorWrites[6 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 1].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 1].dstBinding = 1;
+        descriptorWrites[6 * i + 1].dstArrayElement = 0;
+        descriptorWrites[6 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 1].descriptorCount = 1;
+        descriptorWrites[6 * i + 1].pImageInfo = &imageInfo;
 						 
-        descriptorWrites[5 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[5 * i + 2].dstSet = modelDescriptorSets[i];
-        descriptorWrites[5 * i + 2].dstBinding = 2;
-        descriptorWrites[5 * i + 2].dstArrayElement = 0;
-        descriptorWrites[5 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[5 * i + 2].descriptorCount = 1;
-        descriptorWrites[5 * i + 2].pImageInfo = &texDescriptorVisibility;
+        descriptorWrites[6 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[6 * i + 2].dstSet = modelDescriptorSets[i];
+        descriptorWrites[6 * i + 2].dstBinding = 2;
+        descriptorWrites[6 * i + 2].dstArrayElement = 0;
+        descriptorWrites[6 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[6 * i + 2].descriptorCount = 1;
+        descriptorWrites[6 * i + 2].pImageInfo = &texDescriptorVisibility;
 						 
-		descriptorWrites[5 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[5 * i + 3].dstSet = modelDescriptorSets[i];
-		descriptorWrites[5 * i + 3].dstBinding = 3;
-		descriptorWrites[5 * i + 3].dstArrayElement = 0;
-		descriptorWrites[5 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[5 * i + 3].descriptorCount = 1;
-		descriptorWrites[5 * i + 3].pImageInfo = &texDescriptorGrass;
+		descriptorWrites[6 * i + 3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[6 * i + 3].dstSet = modelDescriptorSets[i];
+		descriptorWrites[6 * i + 3].dstBinding = 3;
+		descriptorWrites[6 * i + 3].dstArrayElement = 0;
+		descriptorWrites[6 * i + 3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[6 * i + 3].descriptorCount = 1;
+		descriptorWrites[6 * i + 3].pImageInfo = &texDescriptorUV;
 						 
-		descriptorWrites[5 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[5 * i + 4].dstSet = modelDescriptorSets[i];
-		descriptorWrites[5 * i + 4].dstBinding = 4;
-		descriptorWrites[5 * i + 4].dstArrayElement = 0;
-		descriptorWrites[5 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[5 * i + 4].descriptorCount = 1;
-		descriptorWrites[5 * i + 4].pImageInfo = &texDescriptorSkybox;
+		descriptorWrites[6 * i + 4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[6 * i + 4].dstSet = modelDescriptorSets[i];
+		descriptorWrites[6 * i + 4].dstBinding = 4;
+		descriptorWrites[6 * i + 4].dstArrayElement = 0;
+		descriptorWrites[6 * i + 4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[6 * i + 4].descriptorCount = 1;
+		descriptorWrites[6 * i + 4].pImageInfo = &texDescriptorGrass;
+						 
+		descriptorWrites[6 * i + 5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[6 * i + 5].dstSet = modelDescriptorSets[i];
+		descriptorWrites[6 * i + 5].dstBinding = 5;
+		descriptorWrites[6 * i + 5].dstArrayElement = 0;
+		descriptorWrites[6 * i + 5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[6 * i + 5].descriptorCount = 1;
+		descriptorWrites[6 * i + 5].pImageInfo = &texDescriptorSkybox;
     }
 
     // Update descriptor sets
@@ -988,7 +1043,7 @@ void VisibilityRenderer::CreateGraphicsPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, timeDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, modelDescriptorSetLayout, timeDescriptorSetLayout, };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1369,6 +1424,16 @@ void VisibilityRenderer::DestroyFrameResources() {
     vkDestroyImage(logicalDevice, deferredDepthImage, nullptr);
 
     vkDestroyFramebuffer(logicalDevice, deferredFramebuffer, nullptr);
+
+	// free skybox texture
+	vkDestroyImageView(logicalDevice, skyboxImageView, nullptr);
+	vkFreeMemory(logicalDevice, skyboxImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, skyboxImage, nullptr);
+
+	// Destroy grass texture resources
+	vkDestroyImageView(logicalDevice, grassImageView, nullptr);
+	vkFreeMemory(logicalDevice, grassImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, grassImage, nullptr);
 }
 
 void VisibilityRenderer::RecreateFrameResources() {
