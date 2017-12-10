@@ -116,20 +116,16 @@ void main() {
 	vec4 mid = tileCorner;
 	mid.z += tileDim * 0.5;
 
-	vec4 projMid = viewProj * mid;
 	float dist = distance(mid.xyz, eyePos.xyz) / 70.0;//projMid.z / projMid.w;
 
 	// store tesselation level in v1 for now
-	//blade.v1 = vec4(500.0);
 	blade.v1.x = getTesselationLevel(dist);
-	//	blade.v1 = vec4(max(1.0, ceil(500.0 * (0.10 + 0.90 * (1.0 - dist * dist)))));
 
 	// top edge
 	mid = tileCorner;
 	mid.x += tileDim * 0.5;
 	mid.z += tileDim;
 
-	projMid = viewProj * mid;
 	dist = distance(mid.xyz, eyePos.xyz) / 70.0;//projMid.z / projMid.w;
 
 	// store tesselation level in v1 for now
@@ -140,7 +136,6 @@ void main() {
 	mid.x += tileDim;
 	mid.z += tileDim * 0.5;
 
-	projMid = viewProj * mid;
 	dist = distance(mid.xyz, eyePos.xyz) / 70.0;//projMid.z / projMid.w;
 
 	// store tesselation level in v1 for now
@@ -150,7 +145,6 @@ void main() {
 	mid = tileCorner;
 	mid.x += tileDim * 0.5;
 
-	projMid = viewProj * mid;
 	dist = distance(mid.xyz, eyePos.xyz) / 70.0;//projMid.z / projMid.w;
 
 	// store tesselation level in v1 for now
