@@ -67,7 +67,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Skybox & Sun
 
-![Sun in skybox](img/sun-example.PNG)
+![Sun in skybox](img/skybox_Image.png)
 
 #### Skybox
 
@@ -103,6 +103,14 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 -   For each fragmnet we calculate the distance of the fragment from the camera and based on the distance and the height we calculate the fog factor which is a value between [0.0, 1.0] that is used to blend the frame color with the fog color. This provides us with a very elegant looking height based fog.
 
 -   Equation for generating the fog factor: `exp(-rayOri.y) * (1.0-exp( -distance*rayDir.y))/rayDir.y`
+
+
+## Performance Analysis
+
+### Deferred Pipeline
+
+-    
+
 
 ## Debug Views
 
