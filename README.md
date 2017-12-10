@@ -37,15 +37,15 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 
 ### LOD Generation
------
 
 ![LOD image](img/LOD_Image.png)
 - For generating the terrain we start with a grid of cells. For each cell we store the bottom left corner (Origin) of the cell and pass it to the compute shader. In the compute shader for each cell in the grid we calculate the distance of the edges making up the cell using the origin position of the cell. Now, using the width of the edges and their distance we calculate the LOD for all the edges making up the cell.
 - This information then gets sent to the graphics pipeline where we use the tesellation control shader to tesellate the terrain with the calculated LOD and the tesselation evaluation shader to shape the terrain using smooth perlin noise. 
 
 
+### Texture Mapping
+
 ### Shadows
-------
 
 ![Shadows](img/shadow_Image.png)
 
@@ -56,8 +56,10 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 -   The benefit of ray-marching the shadows is that we can cast dynamic shadows on the terrain in real-time. 
 
 
+### Skybox & Sun
+
+
 ### Height Based Fog
-------
 
 
 ## Debug Views
