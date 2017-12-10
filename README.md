@@ -109,6 +109,9 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Performance Analysis
 
+- Below, we will describe each of the three pipelines we implemented. For each pipeline, we will analyze the performance impact of each of the five features described above.
+- We will then make a general comparison of three pipelines in terms of their performance.
+
 ### Forward Pipeline
 
 - This is a traditional forward pipeline. It performs one render pass to render the terrain directly to a frame buffer, and another pass to render the skybox onto the same frame buffer.
@@ -182,6 +185,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - Similar to the forward pipeline, when all features are enabled, the improvement from the dynamic LOD offsets the cost of our ray-marched shadows. In fact, we can see it offsets it enough to make the all-features performance slightly better than the no-features case!
 
 ### Comparison of Pipelines
+
 
 ## Debug Views 
 
