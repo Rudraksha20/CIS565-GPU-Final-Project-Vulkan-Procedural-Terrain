@@ -1,6 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#define ENABLE_SHADOWS 1
+#define ENABLE_TEXTURES 1
+#define ENABLE_FOG 1
+
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
     mat4 proj;
@@ -56,6 +60,7 @@ float smoothNoise(vec2 p){
 	return total / maxVal;
 }
 
+#if ENABLE_SHADOWS
 // Ray-marching for shadows
 float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 	// offset ro.y by a small epsilon to handle shadow acne
@@ -77,6 +82,7 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 	}
 	return 1.0;
 }
+#endif
 
 vec3 getColorAtUV(vec2 uv) {
 	// Lambertian Shading
@@ -89,17 +95,22 @@ vec3 getColorAtUV(vec2 uv) {
 	vec3 lightPosition = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
-
+#if ENABLE_TEXTURES
 	vec4 albedo = texture(samplerGrass, uv);
-	
+#else
+	vec4 albedo = vec4(0.88, 0.88, 0.88, 1.0);
+#endif
 	const float ambient = 0.15;
 	vec3 normal = fs_normal;
 
 	float mint = 0.1;
 	float maxt = 30.0;
 	// DEBUG VIEW
+#if ENABLE_SHADOWS
 	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
-
+#else
+	float occ = 1.0;
+#endif
 	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
 	//albedo = (noise < 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
@@ -143,6 +154,7 @@ void main() {
 	vec3 color = getColorAtUV(fs_uv);
 
 	// FOG
+#if ENABLE_FOG
 	vec4 fragment_pos = fs_pos;
 	vec3 sunPosition = vec3(50.0f, 1.0f, 50.0f);
 	vec3 sunDirection = normalize(fragment_pos.xyz - sunPosition);
@@ -170,6 +182,7 @@ void main() {
 	// Adding fog to the final color
 	// DEBUG VIEW
 	color = mix(color, fogColor, fogfactor);
+#endif // ENABLE_FOG
 
 	// sun
 	// sun's "position"

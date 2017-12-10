@@ -1,6 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#define ENABLE_SKYBOX 1
+
 //layout(set = 1, binding = 1) uniform sampler2D texSampler;
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -21,6 +23,7 @@ layout(location = 1) in vec2 fragTexCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
+#if ENABLE_SKYBOX
 	// Skybox & Sun
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
@@ -48,4 +51,7 @@ void main() {
 	// if color is blue-ish, decrease sun influence to simulate cloud cover
 	sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.35;											  
 	outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
+#else
+	outColor = vec4(0.768f, 0.8039f, 0.898f, 1.0);
+#endif
 }
