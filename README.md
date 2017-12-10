@@ -17,10 +17,11 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 ## Running the Base Code
 
 - Fork / Clone this repository.
-- Go into the directory where you downloaded the project and create a build folder
-- `cd` into this build folder in the terminal
+- Go into the directory where you downloaded the project and create a `build` folder
+- `cd` into this `build` folder in the terminal
 - Run: `cmake-gui ..` in the terminal. This should create a window with the source and destiniation directory for the project already populated.
-- Make sure you have cmake installed on your system. If not then you can get the latest version from [here](https://cmake.org/download/). 
+  - On some Windows systems, running CMake from a terminal may not work. Instead, open it through the Start menu and set the "source code" path to the root directory and the "build the binaries" path to the `build` directory.
+- Make sure you have CMake installed on your system. If not then you can get the latest version from [here](https://cmake.org/download/). 
 - Click on `Configure` this should open a pop-up window for you to select the generator. Select: `Visual Studio 14 2015 Win64` and once Configuraion is done, click on `Generate`.
 - You are all set. This step should have created a .sln file in your build folder which you can run using Visual Studio.
 
@@ -45,6 +46,14 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Texture Mapping
 
+!["Fun" texture](src/images/fun.jpg)|![Texture example](img/tex-example.PNG)
+:----------------------------------:|:--------------------------------------:
+"Fun" texture                       | "Fun" texture applied to terrain
+
+- UV mapping is generated for each cell by mapping the origin to UV coordinates (0, 0), the bottom-right corner to (1, 0), the top-left corner to (0, 1), and the top-right corner to (1, 1).
+- Each UV coordinate is directly used to sample a specified texture (there is no mip-mapping currently). In the example above, the "fun" texture on the left was used to color the terrain on the right.
+- The texture is sampled at different points in each pipeline. This is one of the key differences between the visibility pipeline and the others: the visibility pipeline only samples the texture to shade fragments that are guaranteed to be visible (in its final screen-space render pass), whereas the other pipelines do it at the end of their first render pass.
+
 ### Shadows
 
 ![Shadows](img/Ray_Marching_Image.png)
@@ -58,6 +67,29 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Skybox & Sun
 
+![Sun in skybox](img/sun-example.PNG)
+
+#### Skybox
+
+- The skybox is rendered on a screen-space quad `Q` that fills the entire screen. In the forward pipeline, `Q` is a real quad behind all the terrain that is rasterized by a separate pipeline from the cells' pipeline. In the other pipelines, `Q` is not rasterized, but is instead inferred to exist in the fragments that have not been populated with G-buffer or visibility-buffer data.
+- Each fragment that lies on `Q` is transformed from screen space to world space using an inverted view-projection matrix. This gives us a world-space point `P` that lies on the line between the camera's eye and the fragment's screen-space position.
+- By computing the direction from the camera's world-space position to `P`, we get the direction `D` from the camera to the fragment. By normalizing `D`, we map all points on `Q` to points on a sphere `S` centered around the camera.
+
+(TODO: add diagram here)
+
+- We can then use the coordinates of the point on `S` to sample a "circular" texture like the one below:
+![](src/images/ThickCloudsWaterPolar2048.png)
+- This was the texture used to render the example image at the beginning of this section.
+- Traditional skybox cubemaps or rectangular textures can be converted to these "circular" textures through the use of the "Polar Coordinates" filter on Photoshop or GIMP.
+
+#### Sun
+
+- The sun is defined by a direction `D_s`. When shading a fragment, we can check if the fragment's direction `D` from the camera is within a certain angle threshold of `D_s`. If it is, we shade the fragment with a sun-like color.
+- To give the appearance of a moving sun `D_s` changes over the time. This sun does not set -- it rotates about the Y axis, essentially.
+- To give the illusion of the sun being occluded by clouds, when we determine we are shading the sun, we also sample the texture's color we would have normally used to shade the fragment. If it is not sufficiently blue (this is determined with a check of the form `2.0 * color.b > color.r + color.g`), then we assume the fragment is part of a cloud and we mix the sun's color with the cloud's color._
+  - This effect can be seen in the example image at the beginning of this section.
+  - Evidently, this does not extend to all skybox textures. A simple and extensible solution would be to load in an additional cloud-map that tells our shader exactly where clouds are (this cloud-map may be generated by an artist, or even with the adequate filters on an image editor).
+  - We chose not to pursue this path to reduce the complexity of our pipeline as well as texture accesses.
 
 ### Height Based Fog
 
@@ -108,11 +140,5 @@ We'd like to thank the creators of the resources below for providing valuable in
 - [Adrian Biagioli's page on Perlin noise](http://flafla2.github.io/2014/08/09/perlinnoise.html)
 - [Plume Tutorials' Tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
 - [Heiko Irrgang's free skybox texture set](https://93i.de/p/free-skybox-texture-set/)
-
--   [The Visibility Buffer: A Cache-Friendly Approach to Deffered Shading](http://jcgt.org/published/0002/02/04/)
--   [Sascha Willems' example implementation of a deferred pipeline](https://github.com/SaschaWillems/Vulkan/blob/master/examples/deferred/deferred.cpp)
--   [Patricio Gonzalez Vivo's noise functions](https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83)
--   [Adrian Biagioli's page on Perlin noise](http://flafla2.github.io/2014/08/09/perlinnoise.html)
--   [Plume Tutorials' Tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
--   [Heiko Irrgang's free skybox texture set](https://93i.de/p/free-skybox-texture-set/)
+- Adam Mally, for inspiring the skybox with moving sun
 - [Environmental Fog](http://www.iquilezles.org/www/articles/fog/fog.htm)
