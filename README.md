@@ -46,9 +46,11 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Texture Mapping
 
-!["Fun" texture](src/images/fun.jpg)|![Texture example](img/tex-example.PNG)
-:----------------------------------:|:--------------------------------------:
 "Fun" texture                       | "Fun" texture applied to terrain
+:----------------------------------:|:--------------------------------------:
+!["Fun" texture](src/images/fun.jpg)|![Texture example](img/tex-example.PNG)
+
+
 
 - UV mapping is generated for each cell by mapping the origin to UV coordinates (0, 0), the bottom-right corner to (1, 0), the top-left corner to (0, 1), and the top-right corner to (1, 1).
 - Each UV coordinate is directly used to sample a specified texture (there is no mip-mapping currently). In the example above, the "fun" texture on the left was used to color the terrain on the right.
