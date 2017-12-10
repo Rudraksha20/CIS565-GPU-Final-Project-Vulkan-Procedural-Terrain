@@ -111,15 +111,42 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Forward Pipeline
 
+- This is a traditional forward pipeline. It performs one render pass to render the terrain directly to a frame buffer, and another pass to render the skybox onto the same frame buffer.
+- This pipeline consists of:
+  - Compute shader (for dynamic tessellation)
+  - Terrain shaders (vertex, tessellation, fragment)
+  - Skybox shaders (vertex, fragment)
+
 ### Deferred Pipeline
 
 -    The deferred pipeline is an extension of the forward pipeline. It takes the primarily intensive task of shading which is highly dependent on the scene complexity and make it dependent on the image size. In the standard forward pass the scene geometry gets passed to the graphics pipeline which gets tesellated and rasterized. This generates a bunch of fragments per pixel that need to be shaded and most of these fragments do not make their way to the final image as they are occuluded by some geometry and are usually removed by the depth test that occures after the fragment shader. This wastes a lot of precious compute and time resources on shading un-necessary fragments.
 -    The deferred pipeline essentially offsets the shading to a later stage. In the first pass only the base color of the geometry is stored along with some other information like the position and normals in buffers called `G-buffers`. These G-buffers are sent as texture input to the next stage of the pipeline often called the deferred stage. it is at this stage that the geometry gets shaded and only for those fragments that are actually visible and that contribute to the final image. 
 
+- This deferred stage also renders the skybox.
+
+- This pipeline consists of:
+  - Compute shader (for dynamic tessellation)
+  - Terrain shaders (vertex, tessellation, fragment)
+  - Deferred shaders (vertex, fragment)
+- The G-buffer contains the following data:
+  - Albedo (RGB): the color sampled from the texture
+  - Position (XYZ): the world-space position of the point being shaded
+  - Normal (XY): the world-space surface normal of the point being shaded
+
 ### Visibility Pipeline
 
 -   The visibility pipeline is similar to the deferred pipeline in the way that they both offset shading to a later stage. They both have buffers that are filled with some information that are passed as texture to be read from to the shading stage. The primary difference between the visibility pipeline is that the `G-buffer` or `Visibility-buffer` is smaller and is filled with compact data as compared to the `G-buffers` in the visibility pipeine.
 -   The visbility pipeline also does not store the albedo, position and normal in the fisrt pass but rather it stores the triangle index and instance ID per sample for a non-tesellated geometry and as per our implementation for a tesellated geometry we only store the UV values and the XZ position of the terrain. The less information stored in the buffer directly means a lesser storage and bandwidth requirment and promices a good performance boost for mobile devices.  
+
+- Similar to the deferred pipeline the visibility pass renders the skybox.
+
+- This pipeline consists of:
+  - Compute shader (for dynamic tessellation)
+  - Terrain shaders (vertex, tessellation, fragment)
+  - Deferred shaders (vertex, fragment)
+- The visibility buffer contains the following data:
+  - Position (XZ): the world-space position of the point being shaded
+  - UV: the UV coordinates of the point being shaded
 
 ## Debug Views 
 
@@ -150,7 +177,6 @@ Goals
 - Shadow mapping
 - Simple terrain editing (raise/lower certain areas)
 - Support for heightmaps
-
 
 Project Timeline
 ============
