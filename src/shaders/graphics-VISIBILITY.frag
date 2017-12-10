@@ -24,6 +24,11 @@ layout(location = 1) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
+#define FOG 1
+#define SHADOWS 1
+#define SKYBOX 1
+#define TEXTURE 1
+
 // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 float rand(vec2 n) { 
 	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
@@ -87,7 +92,11 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 	const vec3 lightDirection = normalize(lightPosition);
 	float lightIntensity = 1.5;
 
+#if TEXTURE
 	vec4 albedo = sampleColorTexture(uv, position.y);
+#else 
+	vec4 albedo = vec4(0.2);
+#endif
 	
 	const float ambient = 0.15;
 	//vec3 normal = normalize(texture(samplerNormal, uv).xyz);
@@ -95,7 +104,11 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 	float mint = 0.1;
 	float maxt = 30.0;
 	// DEBUG VIEW
+#if SHADOWS
 	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
+#else
+	float occ = 1.0;
+#endif
 	
 	// Primary light
 	float dotProd = clamp(dot(normal, lightDirection), 0.0, 1.0);
@@ -135,6 +148,7 @@ void main() {
 
 	vec3 color = getColorAtUV(uv, worldPos, normal);
 
+#if FOG
 	// FOG
     vec4 cam_to_point = worldPos - vec4(camera.cameraPos, 1.0);
     float dist = length(vec3(cam_to_point));
@@ -154,12 +168,14 @@ void main() {
 
 	// Adding fog to the final color
 	color = mix(color, fogColor, fogfactor);
+#endif
 
 	// Skybox & Sun
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
 
 	if(uv.y <= 0.0) {
+#if SKYBOX
 		// sample from skybox texture
 		// get sky's "position"
 		// 100.0 = far plane
@@ -184,6 +200,7 @@ void main() {
 		// if color is blue-ish, decrease sun influence to simulate cloud cover
 		sunMixFactor *= (2.0 * skyColor.b > skyColor.r + skyColor.g) ? 1.0 : 0.35;											  
 		outColor = mix(outColor, vec4(1.0, 0.9, 0.8, 1.0), sunMixFactor);
+#endif
 	}
 	else {
 		// gamma correction
@@ -209,10 +226,4 @@ void main() {
 #endif
 		outColor = vec4(color.xyz, 1.0);
 	}
-
-	//outColor = vec4(sin(time.totalTime * 2 * 3.14 / 180));
-	//outColor = texture(samplerGrass, uv);
-	//outColor = vec4(abs(normal), 1.0);
-	//outColor = vec4(abs(mod(worldPos.x, 5.0)) / 5.0, abs(mod(worldPos.z, 5.0)) / 5.0, 0.0, 1.0);
-	//outColor = vec4(vec3(uv.y), 1.0);
 }
