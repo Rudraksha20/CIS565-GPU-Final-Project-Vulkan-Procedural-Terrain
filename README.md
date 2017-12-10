@@ -17,10 +17,11 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 ## Running the Base Code
 
 - Fork / Clone this repository.
-- Go into the directory where you downloaded the project and create a build folder
-- `cd` into this build folder in the terminal
+- Go into the directory where you downloaded the project and create a `build` folder
+- `cd` into this `build` folder in the terminal
 - Run: `cmake-gui ..` in the terminal. This should create a window with the source and destiniation directory for the project already populated.
-- Make sure you have cmake installed on your system. If not then you can get the latest version from [here](https://cmake.org/download/). 
+  - On some Windows systems, running CMake from a terminal may not work. Instead, open it through the Start menu and set the "source code" path to the root directory and the "build the binaries" path to the `build` directory.
+- Make sure you have CMake installed on your system. If not then you can get the latest version from [here](https://cmake.org/download/). 
 - Click on `Configure` this should open a pop-up window for you to select the generator. Select: `Visual Studio 14 2015 Win64` and once Configuraion is done, click on `Generate`.
 - You are all set. This step should have created a .sln file in your build folder which you can run using Visual Studio.
 
