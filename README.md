@@ -100,9 +100,9 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 -   Environmental fog is a very simple way to provide depth to the image. Giving a sense of realism to the infinite terrain. Here, we implement a parametric height based fog.
 
--   For each fragmnet we calculate the distance of the fragment from the camera and based on the distance and the height we calculate the fog factor which is a value between [0.0, 1.0] that is used to blend the frame color with the fog color. This provides us with a very elegent looking height based fog.
+-   For each fragmnet we calculate the distance of the fragment from the camera and based on the distance and the height we calculate the fog factor which is a value between [0.0, 1.0] that is used to blend the frame color with the fog color. This provides us with a very elegant looking height based fog.
 
--   Equation for generating the fog factor: `exp(-rayOri.y*) * (1.0-exp( -distance*rayDir.y*))/rayDir.y`
+-   Equation for generating the fog factor: `exp(-rayOri.y) * (1.0-exp( -distance*rayDir.y))/rayDir.y`
 
 ## Debug Views
 
