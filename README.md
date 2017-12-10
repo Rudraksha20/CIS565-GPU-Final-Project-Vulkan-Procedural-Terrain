@@ -112,8 +112,10 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Performance Analysis
 
+### Preliminary Notes
 - Below, we will describe each of the three pipelines we implemented. For each pipeline, we will analyze the performance impact of each of the five features described above.
 - We will then make a general comparison of three pipelines in terms of their performance.
+- The "average time taken to render a frame" below was measured as an arithmetic mean taken from 1000 frames at a time. When shadows are enabled, this average time tends to fluctuate a fair bit, due to the moving light source. In this case, the mean of five measurements (five averages of 1000 frames) was used as the final number.
 
 ### Forward Pipeline
 
@@ -190,6 +192,37 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Comparison of Pipelines
 
+#### No Features Enabled
+
+- Below is a chart comparing the average time taken to render a frame for all pipelines when no features are enabled.
+
+![All pipelines, no features](img/charts/no-features.png)
+
+- Interestingly, the deferred pipeline's performance is slightly worse than the forward pipeline's in this case. This is likely due to the additional overhead incurred by the G-buffer.
+- The visibility pipeline has the best performance here. This is likely due to the lower overhead of the visibility buffer, which greatly reduces delays from memory transfers, as well as the savings from performing late shading (Lambertian shading was still enabled).
+
+#### Shadows Only
+
+- Below is a chart comparing the average time taken to render a frame for all pipelines when only shadows are enabled.
+
+![All pipelines, shadows only](img/charts/shadows-only.png)
+
+- The forward pipeline is significantly slower than the deferred and visibility pipelines. This makes sense, since it computes shadows for all rasterized fragments, while the two other pipelines only do it for a subset of those (the visible fragments).
+- Again, the reduced memory bandwidth requirements of the visibility pipeline are probably the cause for its better performance relative to the deferred one.
+
+#### All Features Enabled
+
+- Below is a chart comparing the average time taken to render a frame for all pipelines when all features are enabled.
+
+![All pipelines, all features](img/charts/all-features.png)
+
+- Like before, the forward pipeline is significantly slower than the deferred and visibility pipelines, while the visibility pipeline is slighly faster than the deferred one. 
+- The shape of this graph is also similar to the one for when only shadows are enabled.
+  - This makes sense when we consider that:
+    - Dynamic LOD should provide a similar improvement in performance to all pipelines, since it affects their first pass (terrain tessellation and rasterization) equally.
+    - The other features don't affect performance significantly.
+  - Thus, the performance drop caused by ray-marched shadows is what mainly determines the relative performance across pipelines.
+
 
 ## Debug Views 
 
@@ -232,11 +265,11 @@ Project Timeline
 Resources
 ==========
 We'd like to thank the creators of the resources below for providing valuable insight for this project:
-- [The Visibility Buffer: A Cache-Friendly Approach to Deffered Shading](http://jcgt.org/published/0002/02/04/)
+- [The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading](http://jcgt.org/published/0002/02/04/)
 - [Sascha Willems' example implementation of a deferred pipeline](https://github.com/SaschaWillems/Vulkan/blob/master/examples/deferred/deferred.cpp)
 - [Patricio Gonzalez Vivo's noise functions](https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83)
 - [Adrian Biagioli's page on Perlin noise](http://flafla2.github.io/2014/08/09/perlinnoise.html)
-- [Plume Tutorials' Tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
+- [Plume Tutorials' tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
 - [Heiko Irrgang's free skybox texture set](https://93i.de/p/free-skybox-texture-set/)
 - Adam Mally, for inspiring the skybox with moving sun
-- [Environmental Fog](http://www.iquilezles.org/www/articles/fog/fog.htm)
+- [Íñigo Quílez' article on environmental fog](http://www.iquilezles.org/www/articles/fog/fog.htm)
