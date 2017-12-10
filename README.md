@@ -46,7 +46,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Texture Mapping
 
-!["Fun" texture](src/images/fun.jpg)|![Texture example](img/tex-example.png)
+!["Fun" texture](src/images/fun.jpg)|![Texture example](img/tex-example.PNG)
 :----------------------------------:|:--------------------------------------:
 "Fun" texture                       | "Fun" texture applied to terrain
 
@@ -67,7 +67,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Skybox & Sun
 
-![Sun in skybox](img/sun-example.png)
+![Sun in skybox](img/sun-example.PNG)
 
 #### Skybox
 
