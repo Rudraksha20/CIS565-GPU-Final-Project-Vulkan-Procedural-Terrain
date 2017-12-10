@@ -1,5 +1,8 @@
 # CIS565 GPU Final Project: Procedural Terrain Generation with Vulkan
+
 __Team: Rudraksha Shah and Mauricio Mutai__
+
+
 Project Overview
 =================
 Currently, many game studios and engines are transitioning or have already transitioned to using Vulkan. However, there aren’t many small teams developing directly with Vulkan. We want to show that even a small team of two can implement a significant project with Vulkan.
@@ -7,6 +10,8 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 1. Deferred Rendering Pipeline
 2. Forward Rendering Pipeline
 3. Visibility Pipeline
+
+
 Running the Base Code
 ==============
 - Fork / Clone this repository.
@@ -16,6 +21,8 @@ Running the Base Code
 - Make sure you have cmake installed on your system. If not then you can get the latest version from [here](https://cmake.org/download/). 
 - Click on `Configure` this should open a pop-up window for you to select the generator. Select: `Visual Studio 14 2015 Win64` and once Configuraion is done, click on `Generate`.
 - You are all set. This step should have created a .sln file in your build folder which you can run using Visual Studio.
+
+
 Player Controls
 ========
 - `A & D`: Move camera left right.
@@ -23,11 +30,15 @@ Player Controls
 - `Q & E`: Move camera up and down.
 - `Mouse Right Click`: Press and move to change the orientation of the camera.
 - `Mouse Left Click`: Press and move to zoom in and out.
+
+
 LOD Generation
 =========
 ![LOD image](img/LOD_Image.png)
 - For generating the terrain we start with a grid of cells. For each cell we store the bottom left corner (Origin) of the cell and pass it to the compute shader. In the compute shader for each cell in the grid we calculate the distance of the edges making up the cell using the origin position of the cell. Now, using the width of the edges and their distance we calculate the LOD for all the edges making up the cell.
 - This information then gets sent to the graphics pipeline where we use the tesellation control shader to tesellate the terrain with the calculated LOD and the tesselation evaluation shader to shape the terrain using smooth perlin noise. 
+
+
 Goals
 ==========
 - Base goals:
@@ -43,12 +54,14 @@ Goals
 - Simple terrain editing (raise/lower certain areas)
 - Support for heightmaps
 
+
 Project Timeline
 ============
 - 11/20: Have basic forward pipeline with procedurally tessellated terrain and varying LOD
 - 11/27: Add deferred pipeline and paper’s pipeline
 - 12/04: Implement texture mapping, extra features
 - 12/11: Extra features
+
 
 Resources
 ==========
