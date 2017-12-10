@@ -205,17 +205,17 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 Goals
 ==========
 - Base goals:
-- Procedurally generated terrain. The terrain is generated using dynamic levels of tessellation in order to achieve varying LOD.
-- Forward and Deferred pipelines for comparison purposes.
-- Implementation of this paper: http://jcgt.org/published/0002/02/04/
-- We want to see if their modification provides any gains in a tessellation-heavy project.
-- Integrate texture mapping to further test the paper -- a lot of the gains claimed by the paper come from saving on too-early texture reads
+  - Procedurally generated terrain. The terrain is generated using dynamic levels of tessellation in order to achieve varying LOD.
+  - Forward and Deferred pipelines for comparison purposes.
+  - Implementation of this paper: http://jcgt.org/published/0002/02/04/
+    - We want to see if their modification provides any gains in a tessellation-heavy project.
+  - Integrate texture mapping to further test the paper -- a lot of the gains claimed by the paper come from saving on too-early texture reads
 - Stretch Goals (we plan on implementing some of these as “extra features”):
-- Procedural rain/snow
-- Water simulation
-- Shadow mapping
-- Simple terrain editing (raise/lower certain areas)
-- Support for heightmaps
+  - Procedural rain/snow
+  - Water simulation
+  - Shadow mapping
+  - Simple terrain editing (raise/lower certain areas)
+  - Support for heightmaps
 
 Project Timeline
 ============
