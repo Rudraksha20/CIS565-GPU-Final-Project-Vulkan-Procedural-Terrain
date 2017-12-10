@@ -109,12 +109,31 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Performance Analysis
 
+### Forward Pipeline
+
 ### Deferred Pipeline
 
--    
+-    The deferred pipeline is an extension of the forward pipeline. It takes the primarily intensive task of shading which is highly dependent on the scene complexity and make it dependent on the image size. In the standard forward pass the scene geometry gets passed to the graphics pipeline which gets tesellated and rasterized. This generates a bunch of fragments per pixel that need to be shaded and most of these fragments do not make their way to the final image as they are occuluded by some geometry and are usually removed by the depth test that occures after the fragment shader. This wastes a lot of precious compute and time resources on shading un-necessary fragments.
+-    The deferred pipeline essentially offsets the shading to a later stage. In the first pass only the base color of the geometry is stored along with some other information like the position and normals in buffers called `G-buffers`. These G-buffers are sent as texture input to the next stage of the pipeline often called the deferred stage. it is at this stage that the geometry gets shaded and only for those fragments that are actually visible and that contribute to the final image. 
 
+### Visibility Pipeline
 
-## Debug Views
+-   The visibility pipeline is similar to the deferred pipeline in the way that they both offset shading to a later stage. They both have buffers that are filled with some information that are passed as texture to be read from to the shading stage. The primary difference between the visibility pipeline is that the `G-buffer` or `Visibility-buffer` is smaller and is filled with compact data as compared to the `G-buffers` in the visibility pipeine.
+-   The visbility pipeline also does not store the albedo, position and normal in the fisrt pass but rather it stores the triangle index and instance ID per sample for a non-tesellated geometry and as per our implementation for a tesellated geometry we only store the UV values and the XZ position of the terrain. The less information stored in the buffer directly means a lesser storage and bandwidth requirment and promices a good performance boost for mobile devices.  
+
+## Debug Views 
+
+### Normals
+
+![debug normals](img/debug_normals.png)
+
+### Wireframe Mesh
+
+![wireframe mesh](img/WFM_Image.png)
+
+### albedo
+
+![albedo](img/albedo_Image.png)
 
 
 Goals
