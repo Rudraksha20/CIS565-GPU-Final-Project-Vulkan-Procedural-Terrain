@@ -14,7 +14,7 @@
 #define VISIBILITY 2
 #define FORWARD 3
 
-#define RENDERER_TYPE VISIBILITY
+#define RENDERER_TYPE DEFERRED
 
 #if RENDERER_TYPE != DEFERRED && RENDERER_TYPE != VISIBILITY && RENDERER_TYPE != FORWARD
 #error "Invalid renderer type specified in main.cpp"
