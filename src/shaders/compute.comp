@@ -1,31 +1,13 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+// if <= 0, enable dynamic tess
+// otherwise, hardcode tessellation level to STATIC_TESS
+// e.g. to force all tessellation to 100, set STATIC_TESS to 100
+#define STATIC_TESS -1
+
 #define MIN_TESS_LEVEL 25.0
 #define MAX_TESS_LEVEL 250.0
-
-#define DISTANCE_BUCKETS 8
-#define MAX_DISTANCE 65.0
-
-#define WIND_TO_COLOR_FACTOR 0.03
-#define WIND_X 0
-#define WIND_Y 1
-#define WIND_Z 2
-#define WIND_RADIAL 3
-#define WIND_CIRCLE 4
-#define WIND_XZ 5
-#define WIND_CONST 6
-#define WIND_TEXT 7
-
-#define WIND_TYPE WIND_XZ
-
-#define WIND_CIRCLE_RADIUS 5.0
-
-#define USE_CUSTOM_COLOR 1
-
-#define ORIENTATION_CULL 1
-#define FRUSTUM_CULL 1
-#define DISTANCE_CULL 1
 
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -89,42 +71,8 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
-#if WIND_TYPE == WIND_TEXT
-#define WIND_TEXT_MAX_DISTANCE 0.7
-// I derived this while waiting for food at Wawa. Hopefully it is good enough
-// segA : one end of line segment
-// segB : other end
-vec3 getWindFromLineSegment(vec3 p, vec3 segA, vec3 segB) {
-	vec3 pA = segA - p;
-	vec3 pB = segB - p;
-	vec3 AB = normalize(segB - segA);
-	float dotABpA = dot(AB, pA);
-	float dotABpB = dot(AB, pB);
-	// check if p's "projection" is on the line segment
-	if (sign(dotABpA) == sign(dotABpB)) {
-		// in this case, it is not, so return no wind
-		return vec3(0.0);
-	}
-	
-	// compute h, height of triangle defined by p, segA, segB, relative to p
-	// to do this, compute l, leg of right triangle defined by h, pA
-	//AB = normalize(AB);
-	// equivalent to: ||AB|| ||pA|| cos(x) * AB
-	//                   1   ||pA|| cos(x) * AB
-	//                       ||l||         * AB
-	vec3 l = dotABpA * AB; 
-	vec3 h = pA - l;
-	float dist = length(h);
-	if (dist > WIND_TEXT_MAX_DISTANCE) {
-		return vec3(0.0);
-	}
-	vec3 dir = -normalize(h);
-	return dir * (1.0 - dist / WIND_TEXT_MAX_DISTANCE);
-}
-#endif
-
+#if (STATIC_TESS <= 0)
 float getTesselationLevel(float dist) {
-#if 1
 	if (dist >= 1.0) {
 		return MIN_TESS_LEVEL;
 	}
@@ -134,15 +82,8 @@ float getTesselationLevel(float dist) {
 	else {
 		return MAX_TESS_LEVEL;	
 	}
-#else
-	if (dist > 0.999) {
-		return 5.0;
-	}
-	else {
-		return 50.0;	
-	}
-#endif
 }
+#endif
 
 void main() {
 	// Reset the number of blades to 0
@@ -166,8 +107,8 @@ void main() {
 
 	blade.v0.x += floor(eyePos.x / tileDim) * tileDim;
 	blade.v0.z += floor(eyePos.z / tileDim) * tileDim;
-	// TODO: tile-level culling
 
+#if STATIC_TESS <= 0
 	mat4 viewProj = camera.proj * camera.view;
 	
 	const vec4 tileCorner = vec4(blade.v0.xyz, 1.0);
@@ -214,7 +155,9 @@ void main() {
 
 	// store tesselation level in v1 for now
 	blade.v1.y = getTesselationLevel(dist);
-
+#else
+	blade.v1 = vec4(STATIC_TESS);
+#endif
 	// remove if for forward pipeline
 	if (blade.v2.x <= 0.01) {
 		uint idx = atomicAdd(numBlades.vertexCount, 1);

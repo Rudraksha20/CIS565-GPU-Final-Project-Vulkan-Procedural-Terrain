@@ -1,13 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define DYNAMIC_TESSELLATION 1
-
-#if DYNAMIC_DYNAMIC_TESSELLATION
-#define MAX_TESSELLATION 4.0
-#define MAX_DISTANCE 36.0
-#endif
-
 layout(vertices = 1) out;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -41,17 +34,6 @@ void main() {
 	//tese_orientationAndWidth = tesc_orientationAndWidth[gl_InvocationID];
 	tese_bitangent = tesc_bitangent[gl_InvocationID];
 
-	// compute distance from camera to blade
-#if DYNAMIC_DYNAMIC_TESSELLATION
-	vec3 cameraEye = vec3(inverse(camera.view)[3]);
-	float dist = distance(cameraEye, gl_in[gl_InvocationID].gl_Position.xyz);
-	float tessellationLevel = dist < MAX_DISTANCE ? ceil(MAX_TESSELLATION * (1.0 - dist / MAX_DISTANCE))
-	                                              : 1.0;
-#else
-	float tessellationLevel = 4.0;
-#endif
-	// TODO: Set level of tesselation
-	// max?
     gl_TessLevelInner[0] = ceil((tese_v1.y + tese_v1.w) * 0.5); // 1 horizontal slice
     gl_TessLevelInner[1] = ceil((tese_v1.x + tese_v1.z) * 0.5); // 4 vertical slices
     gl_TessLevelOuter[0] = tese_v1.x; // left edge: 4 slices
