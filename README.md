@@ -100,7 +100,9 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 -   Environmental fog is a very simple way to provide depth to the image. Giving a sense of realism to the infinite terrain. Here, we implement a parametric height based fog.
 
--   For each fragmnet we calculate the distance of the fragment from the camera and based on the distance and the height we calculate the fog factor which is a value between [0.0, 1.0] that is used to blend the frame color with the fog color. This provides us with a very elegant looking height based fog.
+-   For each fragment we calculate the distance of the fragment from the camera and based on the distance and the height we calculate the fog factor which is a value between [0.0, 1.0] that is used to blend the frame color with the fog color. This provides us with a very elegant looking height based fog.
+
+-   Equation for generating the fog factor: `exp(-rayOri.y) * (1.0-exp( -distance*rayDir.y))/rayDir.y`
 
 ## Debug Views
 
@@ -139,3 +141,4 @@ We'd like to thank the creators of the resources below for providing valuable in
 - [Plume Tutorials' Tutorial on making a spherical skybox](https://plumetutorials.wordpress.com/2013/10/09/3d-tutorial-making-a-skybox/)
 - [Heiko Irrgang's free skybox texture set](https://93i.de/p/free-skybox-texture-set/)
 - Adam Mally, for inspiring the skybox with moving sun
+- [Environmental Fog](http://www.iquilezles.org/www/articles/fog/fog.htm)
