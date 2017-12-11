@@ -249,6 +249,8 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Bloopers
 
+### The Precision Decision 
+
 ![Pixellated example](img/pixellated.png)
 
 - We had this interesting issue where, if we moved the camera too far from the origin, the terrain and shadows would become very pixellated. This only happened in the deferred and visibility pipelines.
@@ -260,6 +262,19 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
   - Note this offset must be a multiple of the cell dimensions, otherwise we would get inconsistent terrain due to variations in sampling the noise function.
 - The final solution was to undo this offsetting when storing the XZ coordinates in a buffer and then re-applying the offset after reading the values from the texture. This allowed us to make the most use of the texture's limited 16-bit precision.
   - This is referred to as "the precision fix" in some commits and comments within the code.
+
+  ### It's Not Normal!
+
+  ![Incorrect Normal](img/Incorrect-Normals.png)
+
+- Another interesting artifact that arised from the precision issue was when we re-calculated the normals using the position stored in the visibility pipeline. It gave us incorrect normals (as shown in the image above) as a result the final image appeared blown out.
+
+- Our goal with the visibility pipeline was to store as minimal information as possible in one visibility buffer to lower the bandwith and memory required for the Visibility buffer. In one of the approaches we stored the final tesellated and interpolated position of the terrain in the `XYZ` coordinates of the visibility buffer and packed the `UV` coordinates to store them in the `W` coordinate of the buffer.
+    - The primary idea behind storing the `Y` coordinate of the terrain position was to save computation time in re-calculating the noise for generating the height later in the Visibility-fragmnet shader.
+
+- The way we re-compute the normals is by taking a small deviation `delta` along the `X` and the `Z` direction w.r.t to the original point `P`and generate the height for these offset points by querying the perlin noise. Due to the above mentioned precision issue the position stored in the visibility buffer was incorrect and the height values generated along the offset points had a very large deviation as compared to the height value at point `P` leading to incorrect normals.
+
+- The solution to this issue was to store only the `XZ` position of the terrain and re-compute the height of the point. This also helped in eleminating any loss of precision that would arise from packing and unpacking the `UV` as we did not need to pack them anymore.
 
 ## Goals
 - Base goals:
