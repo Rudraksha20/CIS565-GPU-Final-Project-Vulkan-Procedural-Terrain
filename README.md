@@ -116,6 +116,8 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - Below, we will describe each of the three pipelines we implemented. For each pipeline, we will analyze the performance impact of each of the five features described above.
 - We will then make a general comparison of three pipelines in terms of their performance.
 - The "average time taken to render a frame" below was measured as an arithmetic mean taken from 1000 frames at a time. When shadows are enabled, this average time tends to fluctuate a fair bit, due to the moving light source. In this case, the mean of five measurements (five averages of 1000 frames) was used as the final number.
+- Measurements made on this environment: Windows 10, i7-7700HQ @ 2.2280GHz 16GB, GTX 1050Ti 4GB (Personal Computer)
+  - Program was running at a resolution of 640x480.
 
 ### Forward Pipeline
 
