@@ -225,6 +225,10 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
     - The other features don't affect performance significantly.
   - Thus, the performance drop caused by ray-marched shadows is what mainly determines the relative performance across pipelines.
 
+## Conclusions About Paper
+
+- We expected texture mapping to create the gap in performance between the deferred and forward pipelines. However, in both cases, the performance impact of that feature was very small. Perhaps Vulkan is too well-optimized!
+- The paper's visibility buffer really shines at reducing the memory bandwidth required to shade a given fragment. It essentially replaces memory transfers with computations. This definitely makes sense, since memory bandwidth and accesses are known to be very slow (in both GPUs and CPUs) relative to performing computations.
 
 ## Debug Views 
 
@@ -241,8 +245,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 ![albedo](img/albedo_Image.png)
 
 
-Goals
-==========
+## Goals
 - Base goals:
   - Procedurally generated terrain. The terrain is generated using dynamic levels of tessellation in order to achieve varying LOD.
   - Forward and Deferred pipelines for comparison purposes.
@@ -256,16 +259,14 @@ Goals
   - Simple terrain editing (raise/lower certain areas)
   - Support for heightmaps
 
-Project Timeline
-============
+## Project Timeline
 - 11/20: Have basic forward pipeline with procedurally tessellated terrain and varying LOD
 - 11/27: Add deferred pipeline and paper’s pipeline
 - 12/04: Implement texture mapping, extra features
 - 12/11: Extra features
 
 
-Resources
-==========
+## Resources
 We'd like to thank the creators of the resources below for providing valuable insight for this project:
 - [The Visibility Buffer: A Cache-Friendly Approach to Deferred Shading](http://jcgt.org/published/0002/02/04/)
 - [Sascha Willems' example implementation of a deferred pipeline](https://github.com/SaschaWillems/Vulkan/blob/master/examples/deferred/deferred.cpp)
