@@ -33,14 +33,6 @@ TerrainGrids::TerrainGrids(Device* device, VkCommandPool commandPool, float plan
         float width = MIN_WIDTH1 + (generateRandomFloat1() * (MAX_WIDTH1 - MIN_WIDTH1));
         currentTerrainGrid.v2 = glm::vec4(terrainGridPosition + terrainGridUp * height, width);
 
-        // skybox
-        if (i == NUM_TERRAINGRIDS - 1) {
-            currentTerrainGrid.v2 = glm::vec4(1.0f);
-        }
-        else {
-            currentTerrainGrid.v2 = glm::vec4(0.0f);
-        }
-
         // Up vector and stiffness coefficient (up)
         float stiffness = MIN_BEND1 + (generateRandomFloat1() * (MAX_BEND1 - MIN_BEND1));
         currentTerrainGrid.up = glm::vec4(terrainGridUp, stiffness);

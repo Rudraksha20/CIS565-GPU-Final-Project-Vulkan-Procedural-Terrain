@@ -4,7 +4,7 @@
 #include <array>
 #include "Model.h"
 
-constexpr static unsigned int NUM_TERRAINGRIDS = (1 << 8 + 1);
+constexpr static unsigned int NUM_TERRAINGRIDS = (1 << 8);
 constexpr static float MIN_HEIGHT1 = 1.3f;
 constexpr static float MAX_HEIGHT1 = 2.5f;
 constexpr static float MIN_WIDTH1 = 0.1f;

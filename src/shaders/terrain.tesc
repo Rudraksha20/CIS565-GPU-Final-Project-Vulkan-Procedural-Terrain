@@ -40,13 +40,4 @@ void main() {
     gl_TessLevelOuter[1] = tese_v1.y; // bottom edge: 1 slice
     gl_TessLevelOuter[2] = tese_v1.z; // right edge: 4 slices
     gl_TessLevelOuter[3] = tese_v1.w; // top edge: 1 slices
-
-	if (tese_v2.x > 0.01) {
-		gl_TessLevelInner[0] = 1.0; // 1 horizontal slice
-		gl_TessLevelInner[1] = 1.0; // 4 vertical slices
-		gl_TessLevelOuter[0] = 1.0; // left edge: 4 slices
-		gl_TessLevelOuter[1] = 1.0; // bottom edge: 1 slice
-		gl_TessLevelOuter[2] = 1.0; // right edge: 4 slices
-		gl_TessLevelOuter[3] = 1.0; // top edge: 1 slices	
-	}
 }
