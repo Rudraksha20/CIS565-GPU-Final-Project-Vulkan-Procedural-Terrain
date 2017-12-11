@@ -190,7 +190,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 - Similar to the forward pipeline, dynamic LOD improves our performance, while fog, skybox, and textures have a minimal effect.
 - The relative cost of ray-marched shadows (46.2%) is between those of the deferred and forward pipelines.
-- Similar to the forward pipeline, when all features are enabled, the improvement from the dynamic LOD offsets the cost of our ray-marched shadows. In fact, we can see it offsets it enough to make the all-features performance slightly better than the no-features case!
+- Similar to the forward pipeline, when all features are enabled, the improvement from the dynamic LOD offsets the cost of our ray-marched shadows.
 
 ### Comparison of Pipelines
 
