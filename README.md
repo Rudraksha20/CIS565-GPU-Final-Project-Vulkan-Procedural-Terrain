@@ -87,11 +87,13 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - The skybox is rendered on a screen-space quad `Q` that fills the entire screen. In the forward pipeline, `Q` is a real quad behind all the terrain that is rasterized by a separate pipeline from the cells' pipeline. In the other pipelines, `Q` is not rasterized, but is instead inferred to exist in the fragments that have not been populated with G-buffer or visibility-buffer data.
 - Each fragment that lies on `Q` is transformed from screen space to world space using an inverted view-projection matrix. This gives us a world-space point `P` that lies on the line between the camera's eye and the fragment's screen-space position.
 - By computing the direction from the camera's world-space position to `P`, we get the direction `D` from the camera to the fragment. By normalizing `D`, we map all points on `Q` to points on a sphere `S` centered around the camera.
-
 - We can then use the coordinates of the point on `S` to sample a "circular" texture like the one below:
 ![](src/images/ThickCloudsWaterPolar2048.png)
 - This was the texture used to render the example image at the beginning of this section.
 - Traditional skybox cubemaps or rectangular textures can be converted to these "circular" textures through the use of the "Polar Coordinates" filter on Photoshop or GIMP.
+- Below is a diagram showing some of they key geometric entities mentioned above. `S` is the black circle, `Q` is the blue line (imagine it as a quad facing the camera).
+
+![Skybox diagram](img/skybox-diagram.png)
 
 #### Sun
 
