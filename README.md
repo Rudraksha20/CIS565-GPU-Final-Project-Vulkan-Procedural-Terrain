@@ -100,9 +100,9 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 | ![With Fog](img/W_Fog_Image.png) |  ![Without Fog](img/WO_Fog_Image.png) |
 
 
--   Environmental fog is a very simple way to provide depth to the image, giving a sense of realism to the infinite terrain. Here, we implement a parametric height based fog.
--   For each fragment, we calculate the distance of the fragment from the camera and, based on this distance and the fragment's world-space height, we calculate the fog factor. This is a value between [0.0, 1.0] that is used to blend the original fragment color with the fog color. This provides us with a very elegant looking height-based fog.
--   Equation for generating the fog factor: `exp(-rayOrigin.y) * (1.0 - exp(-distance * rayDirection.y)) / rayDir.y`
+- Environmental fog is a very simple way to provide depth to the image, giving a sense of realism to the infinite terrain. Here, we implement a parametric height based fog.
+- For each fragment, we calculate the distance of the fragment from the camera and, based on this distance and the fragment's world-space height, we calculate the fog factor. This is a value between [0.0, 1.0] that is used to blend the original fragment color with the fog color. This provides us with a very elegant looking height-based fog.
+- Equation for generating the fog factor: `exp(-rayOrigin.y) * (1.0 - exp(-distance * rayDirection.y)) / rayDir.y`
 
 
 ## Performance Analysis
@@ -166,7 +166,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - The visibility pipeline proposed by Burns and Hunt in their JCGT paper is similar to the deferred pipeline in that they both offset shading to a later stage. They both have buffers that are filled with some information that are passed as textures to be read from to the shading stage. The primary difference between them is that the `Visibility-buffer` (analogous to the deferred pipeline's `G-buffer`) is smaller compared to the `G-buffer`.
 - In the JCGT paper, the visibility pipeline stores only the triangle index and instance ID per fragment for non-tessellated geometry. In our implementation for a tesellated geometry we only store the UV values (for texture mapping) and the XZ world-space position of the terrain. 
    - We store the XZ coordinates because that is enough to re-compute the noise, which gives us the Y coordinate of the point. Having the entire world-space position and access to the noise function, we can re-compute the normals as well. Finally, we can use the UVs to sample the texture. In this way, we re-compute other data that would have normally been stored in the `G-buffer`.
-- The reduced information stored in the buffer directly implies lower storage and bandwidth requirments and suggests a good performance boost for mobile devices.
+- The reduced information stored in the buffer directly implies lower storage and bandwidth requirements and could lead to a good performance boost for mobile devices.
 - Similar to the deferred pipeline, the visibility pass renders the skybox in our project.
 
 - This pipeline consists of:
