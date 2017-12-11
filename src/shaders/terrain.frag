@@ -84,6 +84,10 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 }
 #endif
 
+vec4 sampleColorTexture(vec2 uv, float height) {
+    return mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, height));
+}
+
 vec3 getColorAtUV(vec2 uv) {
 	// Lambertian Shading
 	
@@ -96,7 +100,7 @@ vec3 getColorAtUV(vec2 uv) {
 	const vec3 lightDirection = normalize(lightPosition);//normalize(position.xyz - lightPosition);
 	float lightIntensity = 1.5;
 #if ENABLE_TEXTURES
-	vec4 albedo = texture(samplerGrass, uv);
+	vec4 albedo = sampleColorTexture(uv, position.y);
 #else
 	vec4 albedo = vec4(0.88, 0.88, 0.88, 1.0);
 #endif

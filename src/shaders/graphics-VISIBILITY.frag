@@ -93,7 +93,7 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 	float lightIntensity = 1.5;
 
 #if TEXTURE
-	vec4 albedo = sampleColorTexture(uv, position.y);
+    vec4 albedo = sampleColorTexture(uv, position.y);
 #else
 	vec4 albedo = vec4(0.88, 0.88, 0.88, 1.0);
 #endif
