@@ -27,7 +27,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Player Controls
 
-- `A & D`: Move camera left right.
+- `A & D`: Move camera left and right.
 - `W & S`: Move camera forward and backward.
 - `Q & E`: Move camera up and down.
 - `Mouse Right Click`: Press and move to change the orientation of the camera.
