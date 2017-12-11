@@ -239,6 +239,23 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ![albedo](img/albedo_Image.png)
 
+### UVs
+
+![UV example](img/uv-example.png)
+
+## Bloopers
+
+TODO: add image of pixellated shadows/terrain
+
+- We had this interesting issue where, if we moved the camera too far from the origin, the terrain and shadows would become very pixellated. This only happened in the deferred and visibility pipelines.
+- As one might expect, the root cause of this was in the data stored by the G-buffer or visibility buffer.
+- More specifically, after some debugging, we noticed that the UV values stored in the visibility buffer never became pixellated, no matter how far the camera moved. However, the XZ coordinates did become more visibly discretized as the camera moved farther from the origin.
+  - This led to the insight that UV coordinates were unaffected because they are always in the range [0, 1], whereas the XZ coordinates grew unbounded.
+  - This became an issue because we were storing each component of UVs and XZ coordinates as 16-bit floating point numbers. This is a lower precision than the 32-bit floating point numbers used internally when the shader is running. The lower precision becomes more pronounced when storing values that grow unbounded like the XZ coordinates.
+- The solution to this was to limit the XZ coordinates to a certain range. Luckily, we were sort of doing that already when we initialized the terrain cells -- they are all initialized to be within a range of values from the origin. We achieve the effect of the tiles "following" the camera by adding an offset to the cells' positions based on where the camera is.
+  - Note this offset must be a multiple of the cell dimensions, otherwise we would get inconsistent terrain due to variations in sampling the noise function.
+- The final solution was to undo this offsetting when storing the XZ coordinates in a buffer and then re-applying the offset after reading the values from the texture. This allowed us to make the most use of the texture's limited 16-bit precision.
+  - This is referred to as "the precision fix" in some commits and comments within the code.
 
 ## Goals
 - Base goals:
