@@ -263,7 +263,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - The final solution was to undo this offsetting when storing the XZ coordinates in a buffer and then re-applying the offset after reading the values from the texture. This allowed us to make the most use of the texture's limited 16-bit precision.
   - This is referred to as "the precision fix" in some commits and comments within the code.
 
-  ### It's Not Normal!
+### It's Not Normal!
 
   ![Incorrect Normal](img/Incorrect-Normals.png)
 
