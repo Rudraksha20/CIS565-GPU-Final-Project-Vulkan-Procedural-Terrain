@@ -80,8 +80,6 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 - Each fragment that lies on `Q` is transformed from screen space to world space using an inverted view-projection matrix. This gives us a world-space point `P` that lies on the line between the camera's eye and the fragment's screen-space position.
 - By computing the direction from the camera's world-space position to `P`, we get the direction `D` from the camera to the fragment. By normalizing `D`, we map all points on `Q` to points on a sphere `S` centered around the camera.
 
-(TODO: add diagram here)
-
 - We can then use the coordinates of the point on `S` to sample a "circular" texture like the one below:
 ![](src/images/ThickCloudsWaterPolar2048.png)
 - This was the texture used to render the example image at the beginning of this section.
@@ -98,9 +96,9 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Height Based Fog
 
-| With Fog | Without Fog |
-| --- | --- |
-| ![With Fog](img/W_Fog_Image.png) |  ![Without Fog](img/WO_Fog_Image.png) |
+ With Environmental Fog           | Without Environmental Fog 
+:--------------------------------:| :-------------------------------------: 
+![With Fog](img/W_Fog_Image.png)  |  ![Without Fog](img/WO_Fog_Image.png) 
 
 
 -   Environmental fog is a very simple way to provide depth to the image, giving a sense of realism to the infinite terrain. Here, we implement a parametric height based fog.
