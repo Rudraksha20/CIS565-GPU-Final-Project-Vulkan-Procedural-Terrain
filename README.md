@@ -61,8 +61,8 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ### Shadows
 
- With Shadows           | Without Shadows
-:--------------------------------:| :-------------------------------------: 
+ With Shadows                         | Without Shadows
+:--------------------------------:    | :-------------------------------------: 
 ![With Fog](img/W_Shadows_Image.png)  |  ![Without Fog](img/WO_Shadows_Image.png) 
 
 -   Shadows are an important element in any scene. They provode the sense of spatial coherenece between the different elements present in the scene. This effect can be clearly seen in the image above as compared to the lambertian shaded terrain, the terrain with shadows provides a sense of depth, spatial coherence and realism.
