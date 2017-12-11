@@ -249,7 +249,7 @@ Vulkan’s graphics pipeline gives us access to the tessellation control and eva
 
 ## Bloopers
 
-TODO: add image of pixellated shadows/terrain
+![Pixellated example](img/pixellated.png)
 
 - We had this interesting issue where, if we moved the camera too far from the origin, the terrain and shadows would become very pixellated. This only happened in the deferred and visibility pipelines.
 - As one might expect, the root cause of this was in the data stored by the G-buffer or visibility buffer.
