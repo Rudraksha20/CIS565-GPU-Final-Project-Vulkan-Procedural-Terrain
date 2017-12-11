@@ -4,6 +4,8 @@ __Team: Rudraksha Shah and Mauricio Mutai__
 
 ## Demo Video
 
+Click the image below to watch the full video on Google Drive!
+
 [![](img/vid-thumbnail.jpg)](https://drive.google.com/file/d/1VotKQ3sJEDpstWFpkB2v7iKjdp_-2V-b/view?usp=sharing)
 
 ## Project Overview
