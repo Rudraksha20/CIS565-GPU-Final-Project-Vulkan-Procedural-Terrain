@@ -127,6 +127,13 @@ vec3 getColorAtUV(vec2 uv, vec4 position, vec3 normal) {
 
 void main() {
 	vec4 worldPos = texture(samplerVisibility, fragTexCoord);
+    // put point back into correct position
+    const float tileDim = 15.0;
+
+    // This is essentially re-does the step in the compute shader where we move tiles
+    // to be closer to the camera (this step was undone in the previous frag shader to preserve precision)
+    worldPos.x += floor(camera.cameraPos.x / tileDim) * tileDim;
+    worldPos.z += floor(camera.cameraPos.z / tileDim) * tileDim;
 	vec2 uv = worldPos.yw;
 
 	// Re-compute noise
