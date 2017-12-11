@@ -91,3 +91,26 @@ void BufferUtils::CreateBufferFromData(Device* device, VkCommandPool commandPool
     vkDestroyBuffer(device->GetVkDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->GetVkDevice(), stagingBufferMemory, nullptr);
 }
+
+void BufferUtils::CopyDataToBuffer(Device* device, VkCommandPool commandPool, void* bufferData, VkDeviceSize bufferSize, VkBuffer buffer) {
+    // Create the staging buffer
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    VkBufferUsageFlags stagingUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    BufferUtils::CreateBuffer(device, bufferSize, stagingUsage, stagingProperties, stagingBuffer, stagingBufferMemory);
+
+    // Fill the staging buffer
+    void *data;
+    vkMapMemory(device->GetVkDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, bufferData, static_cast<size_t>(bufferSize));
+    vkUnmapMemory(device->GetVkDevice(), stagingBufferMemory);
+
+    // Copy data from staging to buffer
+    BufferUtils::CopyBuffer(device, commandPool, stagingBuffer, buffer, bufferSize);
+
+    // No need for the staging buffer anymore
+    vkDestroyBuffer(device->GetVkDevice(), stagingBuffer, nullptr);
+    vkFreeMemory(device->GetVkDevice(), stagingBufferMemory, nullptr);
+}

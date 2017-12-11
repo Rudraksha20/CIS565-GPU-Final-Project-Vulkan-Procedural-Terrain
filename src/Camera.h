@@ -35,4 +35,5 @@ public:
 	void PanCamera(float deltaX, float deltaY, float deltaZ);
 	void ResetCamera();
     void UpdateAspectRatio(float aspectRatio);
+    void UpdateBuffer();
 };

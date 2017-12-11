@@ -5,35 +5,24 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
-#define FRUSTUM_CULL_TEST 0
+#define TEST_CAMERA 0
 #define WIND_GIF_CAMERA 0
 
 #include "Camera.h"
 #include "BufferUtils.h"
 
-#if FRUSTUM_CULL_TEST
+#if TEST_CAMERA
 Camera::Camera(Device* device, float aspectRatio) : device(device) {
-    r = 2.0f;
+    r = 0.5f;
     theta = 0.0f;
     phi = 0.0f;
-    cameraBufferObject.viewMatrix = glm::lookAt(glm::vec3(0.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    cameraRefPos = glm::vec3(0.0f);
+    cameraBufferObject.viewMatrix = glm::lookAt(glm::vec3(0.0f, 3.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
+    cameraBufferObject.cameraPos = cameraRefPos;
 
-    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
-    vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
-    memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
-}
-#elif WIND_GIF_CAMERA
-Camera::Camera(Device* device, float aspectRatio) : device(device) {
-    r = 10.0f;
-    theta = 0.0f;
-    phi = 0.0f;
-    cameraBufferObject.viewMatrix = glm::lookAt(glm::vec3(0.0f, 13.0f, 19.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
-    cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
-
-    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
+    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
     vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
@@ -48,7 +37,7 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
 	cameraBufferObject.cameraPos = cameraRefPos;
 
-    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
+    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
     vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
@@ -72,7 +61,7 @@ void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
 
     cameraBufferObject.viewMatrix = glm::inverse(finalTransform);
 
-    memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+    //memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
 void Camera::PanCamera(float deltaX, float deltaY, float deltaZ) {
@@ -82,7 +71,7 @@ void Camera::PanCamera(float deltaX, float deltaY, float deltaZ) {
 
 	cameraBufferObject.cameraPos = cameraRefPos;
 
-	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+	//memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
 void Camera::ResetCamera() {
@@ -100,6 +89,11 @@ void Camera::UpdateAspectRatio(float aspectRatio) {
     cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
 
+    //memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+}
+
+// Updates camera buffer object
+void Camera::UpdateBuffer() {
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 

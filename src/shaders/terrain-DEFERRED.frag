@@ -27,8 +27,8 @@ void main() {
 
     // This is essentially undoing the step in the compute shader where we move tiles
     // to be closer to the camera
-    const float offsetX = floor(camera.cameraPos.x / tileDim) * tileDim;
-    const float offsetZ = floor(camera.cameraPos.z / tileDim) * tileDim;
+    const float offsetX = floor((camera.cameraPos.x) / tileDim) * tileDim;
+    const float offsetZ = floor((camera.cameraPos.z) / tileDim) * tileDim;
 	outPosition = fs_pos - vec4(offsetX, 0.0, offsetZ, 0.0);
 	outNormal = vec4(fs_normal, 0.0);
 }
