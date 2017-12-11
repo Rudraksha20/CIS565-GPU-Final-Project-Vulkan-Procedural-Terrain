@@ -2,12 +2,12 @@
 #include "Instance.h"
 #include "ShaderModule.h"
 #include "Vertex.h"
-#include "Blades.h"
+#include "Terrain.h"
 #include "Camera.h"
 #include "Image.h"
 #include "BufferUtils.h"
 
-#define PRINT_NUM_BLADES 0
+#define PRINT_NUM_TERRAINGRIDS 0
 
 #define LOTSA_NEWLINES "\n\n\n\n\n\n*** "
 
@@ -33,13 +33,13 @@ DeferredRenderer::DeferredRenderer(Device* device, SwapChain* swapChain, Scene* 
     CreateDescriptorPool();
     CreateCameraDescriptorSet();
     CreateModelDescriptorSets();
-    CreateGrassDescriptorSets();
+	CreateTerrainDescriptorSets();
     CreateTimeDescriptorSet();
     CreateTexDescriptorSet();
     CreateComputeDescriptorSets();
     CreateFrameResources();
     CreateGraphicsPipeline();
-    CreateGrassPipeline();
+	CreateTerrainPipeline();
     CreateComputePipeline();
     RecordCommandBuffers();
     RecordDeferredCommandBuffer();
@@ -459,29 +459,29 @@ void DeferredRenderer::RecordDeferredCommandBuffer() {
 
     // TODO: change pipeline layout? DTODO
     // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
-    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
-    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 2, 1, &texDescriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipelineLayout, 2, 1, &texDescriptorSet, 0, nullptr);
 
     vkCmdBeginRenderPass(deferredCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     // Bind the deferred pipeline
-    vkCmdBindPipeline(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipeline);
+    vkCmdBindPipeline(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline);
 
-    for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
-        VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };//{ scene->GetBlades()[j]->GetCulledBladesBuffer() };
+    for (uint32_t j = 0; j < scene->GetTerrainGrids().size(); ++j) {
+        VkBuffer vertexBuffers[] = { scene->GetTerrainGrids()[j]->GetCulledTerrainGridsBuffer() };
         VkDeviceSize offsets[] = { 0 };
         // TODO: Uncomment this when the buffers are populated
         vkCmdBindVertexBuffers(deferredCommandBuffer, 0, 1, vertexBuffers, offsets);
 
-        // TODO: Bind the descriptor set for each grass blades model
-        vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
+        // TODO: Bind the descriptor set for each TerrainGrids model
+        vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipelineLayout, 1, 1, &terrainDescriptorSets[j], 0, nullptr);
 
         // Draw
         // TODO: Uncomment this when the buffers are populated
-        // CHECKITOUT: it's getNumBladesBuffer that specifies how many threads are spawned
+        // CHECKITOUT: it's getNumTerrainGridsBuffer that specifies how many threads are spawned
         // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdDrawIndirect.html
         // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkDrawIndirectCommand.html
-        vkCmdDrawIndirect(deferredCommandBuffer, scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
+        vkCmdDrawIndirect(deferredCommandBuffer, scene->GetTerrainGrids()[j]->GetNumTerrainGridsBuffer(), 0, 1, sizeof(TerrainGridDrawIndirect));
     }
 
     // End render pass
@@ -628,28 +628,28 @@ void DeferredRenderer::CreateComputeDescriptorSetLayout() {
     // will be stored at each binding
     // Describe the binding of the descriptor set layout
     // TODOX: just copied this from time descriptor
-    VkDescriptorSetLayoutBinding inputBladesLayoutBinding = {};
-    inputBladesLayoutBinding.binding = 0;
-    inputBladesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    inputBladesLayoutBinding.descriptorCount = 1; // TODO: number of input blades???
-    inputBladesLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    inputBladesLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding inputTerrainGridsLayoutBinding = {};
+    inputTerrainGridsLayoutBinding.binding = 0;
+    inputTerrainGridsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    inputTerrainGridsLayoutBinding.descriptorCount = 1; // TODO: number of input TerrainGrids???
+    inputTerrainGridsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    inputTerrainGridsLayoutBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutBinding culledBladesLayoutBinding = {};
-    culledBladesLayoutBinding.binding = 1;
-    culledBladesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    culledBladesLayoutBinding.descriptorCount = 1; // TODO: number of input blades???
-    culledBladesLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    culledBladesLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding culledTerrainGridsLayoutBinding = {};
+    culledTerrainGridsLayoutBinding.binding = 1;
+    culledTerrainGridsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    culledTerrainGridsLayoutBinding.descriptorCount = 1; // TODO: number of input TerrainGrids???
+    culledTerrainGridsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    culledTerrainGridsLayoutBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutBinding numBladesLayoutBinding = {};
-    numBladesLayoutBinding.binding = 2;
-    numBladesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    numBladesLayoutBinding.descriptorCount = 1;
-    numBladesLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    numBladesLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding numTerrainGridsLayoutBinding = {};
+    numTerrainGridsLayoutBinding.binding = 2;
+    numTerrainGridsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    numTerrainGridsLayoutBinding.descriptorCount = 1;
+    numTerrainGridsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    numTerrainGridsLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings = { inputBladesLayoutBinding, culledBladesLayoutBinding, numBladesLayoutBinding };
+    std::vector<VkDescriptorSetLayoutBinding> bindings = { inputTerrainGridsLayoutBinding, culledTerrainGridsLayoutBinding, numTerrainGridsLayoutBinding };
 
     // Create the descriptor set layout
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -657,7 +657,7 @@ void DeferredRenderer::CreateComputeDescriptorSetLayout() {
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &grassComputeDescriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &terrainComputeDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout");
     }
 }
@@ -669,24 +669,24 @@ void DeferredRenderer::CreateDescriptorPool() {
         // Camera
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
-        // Models + Blades
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 12 + scene->GetBlades().size()) },
+        // Models + TerrainGrids
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() * 12 + scene->GetTerrainGrids().size()) },
 
-        // Models + Blades
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetBlades().size()) },
+        // Models + TerrainGrids
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetTerrainGrids().size()) },
 
         // Time (compute)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
         // TODO: Add any additional types and counts of descriptors you will need to allocate
-        // Input blades (compute)
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetBlades().size()) },
+        // Input TerrainGrids (compute)
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetTerrainGrids().size()) },
 
-        // Culled blades (compute)
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetBlades().size()) },
+        // Culled TerrainGrids (compute)
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetTerrainGrids().size()) },
 
-        // Number of remaining blades (compute)
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetBlades().size()) },
+        // Number of remaining TerrainGrids (compute)
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(scene->GetTerrainGrids().size()) },
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};
@@ -842,39 +842,37 @@ void DeferredRenderer::CreateModelDescriptorSets() {
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void DeferredRenderer::CreateGrassDescriptorSets() {
-    // TODO: Create Descriptor sets for the grass.
-    // This should involve creating descriptor sets which point to the model matrix of each group of grass blades
-    grassDescriptorSets.resize(scene->GetBlades().size());
+void DeferredRenderer::CreateTerrainDescriptorSets() {
+	terrainDescriptorSets.resize(scene->GetTerrainGrids().size());
 
     // Describe the desciptor set
     VkDescriptorSetLayout layouts[] = { modelDescriptorSetLayout };
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(grassDescriptorSets.size());
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(terrainDescriptorSets.size());
     allocInfo.pSetLayouts = layouts;
 
     // Allocate descriptor sets
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, grassDescriptorSets.data()) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, terrainDescriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate descriptor set");
     }
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(1 * grassDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(1 * terrainDescriptorSets.size());
 
-    for (uint32_t i = 0; i < scene->GetBlades().size(); ++i) {
-        VkDescriptorBufferInfo grassBufferInfo = {};
-        grassBufferInfo.buffer = scene->GetBlades()[i]->GetModelBuffer();
-        grassBufferInfo.offset = 0;
-        grassBufferInfo.range = sizeof(ModelBufferObject);
+    for (uint32_t i = 0; i < scene->GetTerrainGrids().size(); ++i) {
+        VkDescriptorBufferInfo terrainBufferInfo = {};
+        terrainBufferInfo.buffer = scene->GetTerrainGrids()[i]->GetModelBuffer();
+        terrainBufferInfo.offset = 0;
+        terrainBufferInfo.range = sizeof(ModelBufferObject);
 
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[i].dstSet = grassDescriptorSets[i];
+        descriptorWrites[i].dstSet = terrainDescriptorSets[i];
         descriptorWrites[i].dstBinding = 0;
         descriptorWrites[i].dstArrayElement = 0;
         descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[i].descriptorCount = 1;
-        descriptorWrites[i].pBufferInfo = &grassBufferInfo;
+        descriptorWrites[i].pBufferInfo = &terrainBufferInfo;
         descriptorWrites[i].pImageInfo = nullptr;
         descriptorWrites[i].pTexelBufferView = nullptr;
     }
@@ -953,43 +951,41 @@ void DeferredRenderer::CreateTexDescriptorSet() {
 }
 
 void DeferredRenderer::CreateComputeDescriptorSets() {
-    // TODO: Create Descriptor sets for the compute pipeline
-    // The descriptors should point to Storage buffers which will hold the grass blades, the culled grass blades, and the output number of grass blades 
-    grassComputeDescriptorSets.resize(scene->GetBlades().size());
+	terrainComputeDescriptorSets.resize(scene->GetTerrainGrids().size());
 
     // Describe the desciptor set
-    VkDescriptorSetLayout layouts[] = { grassComputeDescriptorSetLayout };
+    VkDescriptorSetLayout layouts[] = { terrainComputeDescriptorSetLayout };
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(grassComputeDescriptorSets.size());
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(terrainComputeDescriptorSets.size());
     allocInfo.pSetLayouts = layouts;
 
     // Allocate descriptor sets
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, grassComputeDescriptorSets.data()) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, terrainComputeDescriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate descriptor set");
     }
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(3 * grassComputeDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(3 * terrainComputeDescriptorSets.size());
 
-    for (uint32_t i = 0; i < scene->GetBlades().size(); ++i) {
-        VkDescriptorBufferInfo inputBladesBufferInfo = {};
-        inputBladesBufferInfo.buffer = scene->GetBlades()[i]->GetBladesBuffer();
-        inputBladesBufferInfo.offset = 0;
-        inputBladesBufferInfo.range = sizeof(Blade) * NUM_BLADES;
+    for (uint32_t i = 0; i < scene->GetTerrainGrids().size(); ++i) {
+        VkDescriptorBufferInfo inputTerrainGridsBufferInfo = {};
+        inputTerrainGridsBufferInfo.buffer = scene->GetTerrainGrids()[i]->GetTerrainGridsBuffer();
+        inputTerrainGridsBufferInfo.offset = 0;
+        inputTerrainGridsBufferInfo.range = sizeof(TerrainGrid) * NUM_TERRAINGRIDS;
 
-        VkDescriptorBufferInfo culledBladesBufferInfo = {};
-        culledBladesBufferInfo.buffer = scene->GetBlades()[i]->GetCulledBladesBuffer();
-        culledBladesBufferInfo.offset = 0;
-        culledBladesBufferInfo.range = sizeof(Blade) * NUM_BLADES;
+        VkDescriptorBufferInfo culledTerrainGridsBufferInfo = {};
+        culledTerrainGridsBufferInfo.buffer = scene->GetTerrainGrids()[i]->GetCulledTerrainGridsBuffer();
+        culledTerrainGridsBufferInfo.offset = 0;
+        culledTerrainGridsBufferInfo.range = sizeof(TerrainGrid) * NUM_TERRAINGRIDS;
 
-        VkDescriptorBufferInfo numBladesBufferInfo = {};
-        numBladesBufferInfo.buffer = scene->GetBlades()[i]->GetNumBladesBuffer();
-        numBladesBufferInfo.offset = 0;
-        numBladesBufferInfo.range = sizeof(BladeDrawIndirect);
+        VkDescriptorBufferInfo numTerrainGridsBufferInfo = {};
+        numTerrainGridsBufferInfo.buffer = scene->GetTerrainGrids()[i]->GetNumTerrainGridsBuffer();
+        numTerrainGridsBufferInfo.offset = 0;
+        numTerrainGridsBufferInfo.range = sizeof(TerrainGridDrawIndirect);
 
         descriptorWrites[3 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3 * i + 0].dstSet = grassComputeDescriptorSets[i];
+        descriptorWrites[3 * i + 0].dstSet = terrainComputeDescriptorSets[i];
         descriptorWrites[3 * i + 0].dstBinding = 0;
         descriptorWrites[3 * i + 0].dstArrayElement = 0;
         descriptorWrites[3 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -997,27 +993,27 @@ void DeferredRenderer::CreateComputeDescriptorSets() {
                                                          // I think so, because docs say descriptorCount is number of elts in pBufferInfo,
                                                          // and pBufferInfo is array of VkDescriptorBufferInfo, of which we only have one (inputBladesBufferInfo)
                                                          // https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkWriteDescriptorSet.html
-        descriptorWrites[3 * i + 0].pBufferInfo = &inputBladesBufferInfo;
+        descriptorWrites[3 * i + 0].pBufferInfo = &inputTerrainGridsBufferInfo;
         descriptorWrites[3 * i + 0].pImageInfo = nullptr;
         descriptorWrites[3 * i + 0].pTexelBufferView = nullptr;
 
         descriptorWrites[3 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3 * i + 1].dstSet = grassComputeDescriptorSets[i];
+        descriptorWrites[3 * i + 1].dstSet = terrainComputeDescriptorSets[i];
         descriptorWrites[3 * i + 1].dstBinding = 1;
         descriptorWrites[3 * i + 1].dstArrayElement = 0;
         descriptorWrites[3 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrites[3 * i + 1].descriptorCount = 1;
-        descriptorWrites[3 * i + 1].pBufferInfo = &culledBladesBufferInfo;
+        descriptorWrites[3 * i + 1].pBufferInfo = &culledTerrainGridsBufferInfo;
         descriptorWrites[3 * i + 1].pImageInfo = nullptr;
         descriptorWrites[3 * i + 1].pTexelBufferView = nullptr;
 
         descriptorWrites[3 * i + 2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3 * i + 2].dstSet = grassComputeDescriptorSets[i];
+        descriptorWrites[3 * i + 2].dstSet = terrainComputeDescriptorSets[i];
         descriptorWrites[3 * i + 2].dstBinding = 2;
         descriptorWrites[3 * i + 2].dstArrayElement = 0;
         descriptorWrites[3 * i + 2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrites[3 * i + 2].descriptorCount = 1;
-        descriptorWrites[3 * i + 2].pBufferInfo = &numBladesBufferInfo;
+        descriptorWrites[3 * i + 2].pBufferInfo = &numTerrainGridsBufferInfo;
         descriptorWrites[3 * i + 2].pImageInfo = nullptr;
         descriptorWrites[3 * i + 2].pTexelBufferView = nullptr;
     }
@@ -1185,12 +1181,12 @@ void DeferredRenderer::CreateGraphicsPipeline() {
     vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
-void DeferredRenderer::CreateGrassPipeline() {
+void DeferredRenderer::CreateTerrainPipeline() {
     // --- Set up programmable shaders ---
-    VkShaderModule vertShaderModule = ShaderModule::Create("shaders/grass.vert.spv", logicalDevice);
-    VkShaderModule tescShaderModule = ShaderModule::Create("shaders/grass.tesc.spv", logicalDevice);
-    VkShaderModule teseShaderModule = ShaderModule::Create("shaders/grass-DEFERRED.tese.spv", logicalDevice);
-    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/grass-DEFERRED.frag.spv", logicalDevice);
+    VkShaderModule vertShaderModule = ShaderModule::Create("shaders/terrain.vert.spv", logicalDevice);
+    VkShaderModule tescShaderModule = ShaderModule::Create("shaders/terrain.tesc.spv", logicalDevice);
+    VkShaderModule teseShaderModule = ShaderModule::Create("shaders/terrain-DEFERRED.tese.spv", logicalDevice);
+    VkShaderModule fragShaderModule = ShaderModule::Create("shaders/terrain-DEFERRED.frag.spv", logicalDevice);
 
     // Assign each shader module to the appropriate stage in the pipeline
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -1225,8 +1221,8 @@ void DeferredRenderer::CreateGrassPipeline() {
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = Blade::getBindingDescription();
-    auto attributeDescriptions = Blade::getAttributeDescriptions();
+    auto bindingDescription = TerrainGrid::getBindingDescription();
+    auto attributeDescriptions = TerrainGrid::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
@@ -1334,7 +1330,7 @@ void DeferredRenderer::CreateGrassPipeline() {
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = 0;
 
-    if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &grassPipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &terrainPipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout");
     }
 
@@ -1359,13 +1355,13 @@ void DeferredRenderer::CreateGrassPipeline() {
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pTessellationState = &tessellationInfo;
     pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = grassPipelineLayout;
+    pipelineInfo.layout = terrainPipelineLayout;
     pipelineInfo.renderPass = deferredRenderPass; // important!!
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &grassPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &terrainPipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline");
     }
 
@@ -1387,9 +1383,9 @@ void DeferredRenderer::CreateComputePipeline() {
     computeShaderStageInfo.pName = "main";
 
     // TODO: Add the compute dsecriptor set layout you create to this list
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, grassComputeDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, terrainComputeDescriptorSetLayout };
 
-    // Define push constant stuff to hold NUM_BLADES
+    // Define push constant stuff to hold NUM_TERRAINGRIDS
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     pushConstantRange.offset = 0;
@@ -1546,15 +1542,15 @@ void DeferredRenderer::DestroyFrameResources() {
 
 void DeferredRenderer::RecreateFrameResources() {
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    vkDestroyPipeline(logicalDevice, grassPipeline, nullptr);
+    vkDestroyPipeline(logicalDevice, terrainPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, grassPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, terrainPipelineLayout, nullptr);
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     DestroyFrameResources();
     CreateFrameResources();
     CreateGraphicsPipeline();
-    CreateGrassPipeline();
+    CreateTerrainPipeline();
     RecordCommandBuffers();
 }
 
@@ -1590,13 +1586,13 @@ void DeferredRenderer::RecordComputeCommandBuffer() {
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
 
     // Update push constants
-    int pushValues[] = { NUM_BLADES };
+    int pushValues[] = { NUM_TERRAINGRIDS };
     vkCmdPushConstants(computeCommandBuffer, computePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), pushValues);
 
-    // TODO: For each group of blades bind its descriptor set and dispatch
-    for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
-        vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &grassComputeDescriptorSets[j], 0, nullptr);
-        vkCmdDispatch(computeCommandBuffer, (int)ceil((float)NUM_BLADES / WORKGROUP_SIZE), 1, 1);
+    // TODO: For each group of TerrainGrids bind its descriptor set and dispatch
+    for (uint32_t j = 0; j < scene->GetTerrainGrids().size(); ++j) {
+        vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &terrainComputeDescriptorSets[j], 0, nullptr);
+        vkCmdDispatch(computeCommandBuffer, (int)ceil((float)NUM_TERRAINGRIDS / WORKGROUP_SIZE), 1, 1);
     }
 
     // ~ End recording ~
@@ -1645,16 +1641,16 @@ void DeferredRenderer::RecordCommandBuffers() {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-        std::vector<VkBufferMemoryBarrier> barriers(scene->GetBlades().size());
+        std::vector<VkBufferMemoryBarrier> barriers(scene->GetTerrainGrids().size());
         for (uint32_t j = 0; j < barriers.size(); ++j) {
             barriers[j].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
             barriers[j].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             barriers[j].dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
             barriers[j].srcQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Compute);
             barriers[j].dstQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Graphics);
-            barriers[j].buffer = scene->GetBlades()[j]->GetNumBladesBuffer();
+            barriers[j].buffer = scene->GetTerrainGrids()[j]->GetNumTerrainGridsBuffer();
             barriers[j].offset = 0;
-            barriers[j].size = sizeof(BladeDrawIndirect);
+            barriers[j].size = sizeof(TerrainGridDrawIndirect);
         }
 
         vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
@@ -1685,24 +1681,24 @@ void DeferredRenderer::RecordCommandBuffers() {
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         }
 #if 0
-        // Bind the grass pipeline
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipeline);
+        // Bind the terrain pipeline
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline);
 
-        for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
-            VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };//{ scene->GetBlades()[j]->GetCulledBladesBuffer() };
+        for (uint32_t j = 0; j < scene->GetTerrainGrids().size(); ++j) {
+            VkBuffer vertexBuffers[] = { scene->GetTerrainGrids()[j]->GetCulledTerrainGridsBuffer() };//{ scene->GetTerrainGrids()[j]->GetCulledTerrainGridsBuffer() };
             VkDeviceSize offsets[] = { 0 };
             // TODO: Uncomment this when the buffers are populated
             vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-            // TODO: Bind the descriptor set for each grass blades model
-            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
+            // TODO: Bind the descriptor set for each TerrainGrids model
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipelineLayout, 1, 1, &terrainDescriptorSets[j], 0, nullptr);
 
             // Draw
             // TODO: Uncomment this when the buffers are populated
-            // CHECKITOUT: it's getNumBladesBuffer that specifies how many threads are spawned
+            // CHECKITOUT: it's getNumTerrainGridsBuffer that specifies how many threads are spawned
             // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/vkCmdDrawIndirect.html
             // see: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkDrawIndirectCommand.html
-            vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
+            vkCmdDrawIndirect(commandBuffers[i], scene->GetTerrainGrids()[j]->GetNumTerrainGridsBuffer(), 0, 1, sizeof(TerrainGridDrawIndirect));
         }
 #endif
         // End render pass
@@ -1732,7 +1728,7 @@ void DeferredRenderer::Frame() {
         return;
     }
 
-    // Submit the grass buffer (make G-buffer)
+    // Submit the terrain buffer (make G-buffer)
     VkSubmitInfo deferredSubmitInfo = {};
     deferredSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -1775,12 +1771,12 @@ void DeferredRenderer::Frame() {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
 
-#if PRINT_NUM_BLADES
-    // try to read numBladesBuffer ============================================
+#if PRINT_NUM_TERRAINGRIDS
+    // try to read numTerrainGridsBuffer ============================================
     // Create the staging buffer
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    VkDeviceSize bufferSize = sizeof(BladeDrawIndirect);
+    VkDeviceSize bufferSize = sizeof(TerrainGridDrawIndirect);
 
     VkBufferUsageFlags stagingUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -1791,23 +1787,23 @@ void DeferredRenderer::Frame() {
     vkMapMemory(device->GetVkDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
     // CPU mem "data" should now be mapped to a vkbuffer!!??
     // so copy data into "data"
-    BufferUtils::CopyBuffer(device, computeCommandPool, scene->GetBlades()[0]->GetNumBladesBuffer(), stagingBuffer, bufferSize);
+    BufferUtils::CopyBuffer(device, computeCommandPool, scene->GetTerrainGrids()[0]->GetNumTerrainGridsBuffer(), stagingBuffer, bufferSize);
     vkUnmapMemory(device->GetVkDevice(), stagingBufferMemory);
 
     // read "data"
-    BladeDrawIndirect* indirectDraw = (BladeDrawIndirect*)data;
-    //printf("num blades: %d\n", indirectDraw->vertexCount);
+	TerrainGridDrawIndirect* indirectDraw = (TerrainGridDrawIndirect*)data;
+    //printf("num TerrainGrids: %d\n", indirectDraw->vertexCount);
 
     // No need for the staging buffer anymore
     vkDestroyBuffer(device->GetVkDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->GetVkDevice(), stagingBufferMemory, nullptr);
-    // try to read numBladesBuffer ============================================
+    // try to read numTerrainGridsBuffer ============================================
 
-    // Try to read all the blades first position info ========================================
+    // Try to read all the TerrainGrids first position info ========================================
     // Create the staging buffer
     VkBuffer stagingBuffer1;
     VkDeviceMemory stagingBuffer1Memory;
-    VkDeviceSize buffer1Size = NUM_BLADES * sizeof(Blade);
+    VkDeviceSize buffer1Size = NUM_TERRAINGRIDS * sizeof(TerrainGrid);
 
     VkBufferUsageFlags staging1Usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     VkMemoryPropertyFlags staging1Properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -1818,18 +1814,18 @@ void DeferredRenderer::Frame() {
     vkMapMemory(device->GetVkDevice(), stagingBuffer1Memory, 0, buffer1Size, 0, &data1);
     // CPU mem "data" should now be mapped to a vkbuffer!!??
     // so copy data into "data"
-    BufferUtils::CopyBuffer(device, computeCommandPool, scene->GetBlades()[0]->GetBladesBuffer(), stagingBuffer1, buffer1Size);
+    BufferUtils::CopyBuffer(device, computeCommandPool, scene->GetTerrainGrids()[0]->GetTerrainGridsBuffer(), stagingBuffer1, buffer1Size);
     vkUnmapMemory(device->GetVkDevice(), stagingBuffer1Memory);
 
     // read "data"
-    Blade* blade1 = (Blade*)data1;
-    printf("blade[i].vo: %d\n", (*blade1).v0);
+	TerrainGrid* terrainGrid1 = (TerrainGrid*)data1;
+    printf("terrainGrid[i].vo: %d\n", (*terrainGrid1).v0);
 
     // No need for the staging buffer anymore
     vkDestroyBuffer(device->GetVkDevice(), stagingBuffer1, nullptr);
-    // Try to read all the blades first position info ========================================
+    // Try to read all the terrainGrids first position info ========================================
 
-#endif // PRINT_NUM_BLADES
+#endif // PRINT_NUM_TERRAINGRIDS
 
     if (!swapChain->Present()) {
         RecreateFrameResources();
@@ -1846,13 +1842,13 @@ DeferredRenderer::~DeferredRenderer() {
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, 1, &deferredCommandBuffer);
 
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    vkDestroyPipeline(logicalDevice, grassPipeline, nullptr);
+    vkDestroyPipeline(logicalDevice, terrainPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, computePipeline, nullptr);
     // newly added
     //vkDestroyPipeline(logicalDevice, deferredPipeline, nullptr);
 
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, grassPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, terrainPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, computePipelineLayout, nullptr);
     // newly added
     //vkDestroyPipelineLayout(logicalDevice, deferredPipelineLayout, nullptr);
@@ -1860,7 +1856,7 @@ DeferredRenderer::~DeferredRenderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, cameraDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(logicalDevice, grassComputeDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logicalDevice, terrainComputeDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, texDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);

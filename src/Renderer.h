@@ -25,13 +25,13 @@ public:
 
     void CreateCameraDescriptorSet();
     void CreateModelDescriptorSets();
-    void CreateGrassDescriptorSets();
+	void CreateTerrainDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateComputeDescriptorSets();
 	void CreateTexDescriptorSet();
 
     void CreateGraphicsPipeline();
-    void CreateGrassPipeline();
+	void CreateTerrainPipeline();
     void CreateComputePipeline();
 
     void CreateFrameResources();
@@ -58,26 +58,26 @@ private:
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelDescriptorSetLayout;
     VkDescriptorSetLayout timeDescriptorSetLayout;
-    VkDescriptorSetLayout grassComputeDescriptorSetLayout;
+	VkDescriptorSetLayout terrainComputeDescriptorSetLayout;
 	VkDescriptorSetLayout texDescriptorSetLayout;
     
     VkDescriptorPool descriptorPool;
 
     VkDescriptorSet cameraDescriptorSet;
     std::vector<VkDescriptorSet> modelDescriptorSets;
-    std::vector<VkDescriptorSet> grassDescriptorSets;
+	std::vector<VkDescriptorSet> terrainDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
-    std::vector<VkDescriptorSet> grassComputeDescriptorSets;
+	std::vector<VkDescriptorSet> terrainComputeDescriptorSets;
 	VkDescriptorSet texDescriptorSet;
 
     VkPipelineLayout graphicsPipelineLayout;
-    VkPipelineLayout grassPipelineLayout;
+	VkPipelineLayout terrainPipelineLayout;
     VkPipelineLayout computePipelineLayout;
 	// newly added
 	VkPipelineLayout deferredPipelineLayout;
 
     VkPipeline graphicsPipeline;
-    VkPipeline grassPipeline;
+	VkPipeline terrainPipeline;
     VkPipeline computePipeline;
 	// newly added
 	VkPipeline deferredPipeline;

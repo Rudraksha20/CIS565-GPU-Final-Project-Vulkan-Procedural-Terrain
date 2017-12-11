@@ -4,7 +4,7 @@
 #include <chrono>
 
 #include "Model.h"
-#include "Blades.h"
+#include "Terrain.h"
 
 #define MAX_DELTA_COUNT 2000
 
@@ -26,7 +26,7 @@ private:
     void* mappedData;
 
     std::vector<Model*> models;
-    std::vector<Blades*> blades;
+    std::vector<TerrainGrids*> terrainGrids;
 
     float deltaAcc; // accumulates deltaTime
     int deltaCount; // counts how many times deltaTime has been accumulated
@@ -39,10 +39,10 @@ public:
     ~Scene();
 
     const std::vector<Model*>& GetModels() const;
-    const std::vector<Blades*>& GetBlades() const;
+    const std::vector<TerrainGrids*>& GetTerrainGrids() const;
     
     void AddModel(Model* model);
-    void AddBlades(Blades* blades);
+    void AddTerrainGrids(TerrainGrids* terrainGrids);
 
     VkBuffer GetTimeBuffer() const;
 

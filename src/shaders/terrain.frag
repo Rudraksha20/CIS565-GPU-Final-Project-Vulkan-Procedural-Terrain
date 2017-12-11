@@ -111,25 +111,6 @@ vec3 getColorAtUV(vec2 uv) {
 #else
 	float occ = 1.0;
 #endif
-	//albedo = mix(texture(samplerGrass, uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
-	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, position.y));
-	//albedo = (noise < 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
-	//albedo = mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), smoothNoise(position.xz)), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0);
-	//albedo = texture(samplerGrass, uv);
-
-	bool s = false;
-	if (s) {
-		if(position.y > 3.5) {
-			albedo = (noise > 0.3)? vec4(1.0, 0.98, 0.98, 1.0) : mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), position.y / 5.0); //vec4(1.0, 0.98, 0.98, 1.0);
-		} else if(position.y > 3.0 && position.y <= 3.5) {
-			albedo = (noise > 0.5)? mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise) : vec4(1.0, 0.98, 0.98, 1.0); //mix(mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise), vec4(1.0, 0.98, 0.98, 1.0), noise);
-		} else {
-			albedo = (noise < 0.8)?  mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise) : vec4(1.0, 0.98, 0.98, 1.0); //mix(vec4(0.568, 0.586, 0.129, 1.0), vec4(0.529, 0.2627, 0.09, 1.0), noise); //vec4(0.0, 0.0, 2.0, 1.0);
-		}
-		//else if(position.y > 2 && position.y < 3.5) {//b + g
-		//	albedo = mix(vec4(0.529, 0.2627, 0.09, 1.0), vec4(0.568, 0.586, 0.129, 1.0), smoothNoise(position.xz));//vec4(0.0, 2.0, 0.0, 1.0);
-		//}
-	}
 	
 	// Primary light
 	float dotProd = clamp(dot(normal, lightDirection), 0.0, 1.0);
@@ -195,20 +176,6 @@ void main() {
 	float xzAngle = atan(sunDir.z, sunDir.x);
 	float radius = 1.0 - (sunDir.y + 1.0) * 0.5;
 	float occlusions = 0.0;
-#if 0
-	for (float i = -1.0; i < 1.1; i += 1.0) {
-		for (float j = -1.0 ; j < 1.1; j += 1.0) {
-			float angle = xzAngle + i * 0.002;
-			float r = radius + j * 0.002;
-			vec2 sampleUV = vec2(cos(angle) * r, sin(angle) * r) * 0.5 + vec2(0.5);
-			vec4 sampleColor = texture(samplerSkybox, sampleUV);
-			if (2.0 * sampleColor.b <= sampleColor.r + sampleColor.g) {
-				occlusions += 1.0;
-			}
-		}
-	}
-	// debug view
-	float cloudFactor = (1.0  - (occlusions / 9.0) * 0.2);
-#endif
+
 	outColor = vec4(color.xyz, 1.0);
 }

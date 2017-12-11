@@ -19,28 +19,6 @@ layout(location = 1) out vec4 outPosition;
 layout(location = 2) out vec4 outNormal;
 
 void main() {
-#if 0
-	if (fs_color.w > 0.0) {
-		// use custom color in fs_color
-		outAlbedo = vec4(fs_color.xyz, 1.0);
-	}
-	else {
-		// use green + lambert shading
-		const vec3 lightDir = vec3(-0.577350269, 0.577350269, 0.577350269);
-		float lambert = max(dot(fs_normal, lightDir), dot(-fs_normal, lightDir));
-		lambert = clamp(lambert, 0.25, 1.0) * 0.5 + 0.5;
-		vec3 color = vec3(0.1, 0.9, 0.2) * lambert;
-		outAlbedo = vec4(color, 1.0);
-	}
-	
-	// Lambertian Shading
-	vec3 lightDirection = -normalize(vec3(2.0, 1.0, 2.0));
-	vec3 color = vec3(0.75);
-	float ambient = 0.2;
-	float dotProd = (dot(normalize(fs_normal), lightDirection));
-	color = color * dotProd + ambient;
-#endif
-
 	outAlbedo = mix(texture(samplerGrass, fs_uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, fs_pos.y));
 	outPosition = fs_pos;
 	outNormal = vec4(fs_normal, 0.0);
