@@ -4,6 +4,7 @@
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
     mat4 proj;
+    vec3 cameraPos;
 } camera;
 
 layout (set = 2, binding = 0) uniform sampler2D samplerGrass;
@@ -20,6 +21,14 @@ layout(location = 2) out vec4 outNormal;
 
 void main() {
 	outAlbedo = mix(texture(samplerGrass, fs_uv), vec4(1.0, 0.98, 0.98, 1.0), smoothstep(1.0, 5.0, fs_pos.y));
-	outPosition = fs_pos;
+    // make number smaller so more of its precision is preserved
+    // when converting to tiny 16-bit float
+    const float tileDim = 15.0;
+
+    // This is essentially undoing the step in the compute shader where we move tiles
+    // to be closer to the camera
+    const float offsetX = floor(camera.cameraPos.x / tileDim) * tileDim;
+    const float offsetZ = floor(camera.cameraPos.z / tileDim) * tileDim;
+	outPosition = fs_pos - vec4(offsetX, 0.0, offsetZ, 0.0);
 	outNormal = vec4(fs_normal, 0.0);
 }

@@ -83,11 +83,10 @@ float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
 	return 1.0;
 }
 
-vec3 getColorAtUV(vec2 uv) {
+vec3 getColorAtUV(vec2 uv, vec4 position) {
 	// Lambertian Shading
 	
 	// Fragment Position
-	vec4 position = texture(samplerPosition, uv);
 	float noise = smoothNoise(position.xz);
 
 	// Primary Sun light
@@ -131,9 +130,17 @@ vec3 getColorAtUV(vec2 uv) {
 
 void main() {
     //outColor = vec4(fragTexCoord.x, fragTexCoord.y, 0.0, 1.0);//texture(texSampler, fragTexCoord);
-	vec3 color = getColorAtUV(fragTexCoord);
-	vec4 fragment_pos = texture(samplerPosition, fragTexCoord);
+    vec4 fragment_pos = texture(samplerPosition, fragTexCoord);
+    // put point back into correct position
+    const float tileDim = 15.0;
+
+    // This is essentially re-does the step in the compute shader where we move tiles
+    // to be closer to the camera (this step was undone in the previous frag shader to preserve precision)
+    fragment_pos.x += floor(camera.cameraPos.x / tileDim) * tileDim;
+    fragment_pos.z += floor(camera.cameraPos.z / tileDim) * tileDim;
 	
+    vec3 color = getColorAtUV(fragTexCoord, fragment_pos);
+
 #if FOG
 	// FOG
 	vec3 sunPosition = vec3(50.0f, 1.0f, 50.0f);
