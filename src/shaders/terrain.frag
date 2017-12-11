@@ -62,10 +62,10 @@ float smoothNoise(vec2 p){
 
 #if ENABLE_SHADOWS
 // Ray-marching for shadows
-float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
+float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt, vec3 normal) {
 	// offset ro.y by a small epsilon to handle shadow acne
 	float epsilon = 0.025;
-	ro = ro + rd * epsilon;
+	ro = ro + normal * epsilon;
 	float originalH = ro.y;
 	for(float t = mint; t < maxt;) {
 		// travel along rd by t
@@ -111,7 +111,7 @@ vec3 getColorAtUV(vec2 uv) {
 	float maxt = 30.0;
 	// DEBUG VIEW
 #if ENABLE_SHADOWS
-	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
+	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt, normal);
 #else
 	float occ = 1.0;
 #endif
@@ -127,13 +127,10 @@ vec3 getColorAtUV(vec2 uv) {
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
 	vec3 lightContribution = dotProd * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
-	//lightContribution += sky;//vec3(0.16, 0.2, 0.28)
+	lightContribution += sky;//vec3(0.16, 0.2, 0.28)
 	lightContribution += ind;//vec3(0.4, 0.28, 0.2)
 	return vec3(albedo) * occ * lightContribution + vec3(ambient);
 }
-
-
-
 
 void main() {
 	vec3 color = getColorAtUV(fs_uv);
@@ -153,8 +150,6 @@ void main() {
     float fogEnd = 50.0;
     float fogStart = 0.0;
     float fogfactor = 0.0;
-	//float sunContribution = max(dot(vec3(cam_to_point), sunDirection), 0.1);
-	//vec3 fogColor = mix(vec3(0.3,0.4,0.4), vec3(0.8, 0.7, 0.5), sunContribution);
 	vec3 fogColor = vec3(0.8,0.8,0.9);
 	float c = 0.3;
 	// Height based fog
@@ -162,10 +157,8 @@ void main() {
 		cam_to_point.y = 0.001;
 	}
 	fogfactor = c * exp(-camera.cameraPos.y * fog_density) * (1.0 - exp(-fogcoord * cam_to_point.y * fog_density)) / cam_to_point.y;
-	//fogfactor = 1.0-clamp(exp(-pow(fog_density*fogcoord, 2.0)), 0.0, 1.0);
 
 	// Adding fog to the final color
-	// DEBUG VIEW
 	color = mix(color, fogColor, fogfactor);
 #endif // ENABLE_FOG
 
@@ -174,12 +167,12 @@ void main() {
 	//const vec3 sunPosition = vec3(cos(time.totalTime / 5.0), 0.4, sin(time.totalTime / 5.0));
 	const vec3 sunPos = vec3(10.0 * cos(time.totalTime * 0.025), 2.0, 10.0 * sin(time.totalTime * 0.025));
 	const vec3 sunDir = normalize(sunPos);//normalize(vec3(1.0, 0.333, -0.005));
-	// gamma correction
-	//color = pow( color, vec3(1.0/2.2) );
 	// sample some points around the sun to infer how occluded it is
 	float xzAngle = atan(sunDir.z, sunDir.x);
 	float radius = 1.0 - (sunDir.y + 1.0) * 0.5;
 	float occlusions = 0.0;
 
+	// gamma correction
+	//color = pow( color, vec3(1.0/2.2) );
 	outColor = vec4(color.xyz, 1.0);
 }

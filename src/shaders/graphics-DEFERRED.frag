@@ -62,10 +62,10 @@ float smoothNoise(vec2 p){
 }
 
 // Ray-marching for shadows
-float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt) {
+float rayMarchShadows(vec3 ro, vec3 rd, float mint, float maxt, vec3 normal) {
 	// offset ro.y by a small epsilon to handle shadow acne
 	float epsilon = 0.025;
-	ro = ro + rd * epsilon;
+	ro = ro + normal * epsilon;
 	float originalH = ro.y;
 	for(float t = mint; t < maxt;) {
 		// travel along rd by t
@@ -107,7 +107,7 @@ vec3 getColorAtUV(vec2 uv, vec4 position) {
 	float maxt = 30.0;
 	// DEBUG VIEW
 #if SHADOWS
-	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt);
+	float occ = rayMarchShadows(position.xyz, lightDirection, mint, maxt, normal);
 #else
 	float occ = 1.0;
 #endif
@@ -123,8 +123,8 @@ vec3 getColorAtUV(vec2 uv, vec4 position) {
 
 	//return vec3(albedo) * dotProd * lightIntensity + vec3(ambient);
 	vec3 lightContribution = dotProd * pow(vec3(dotProd), vec3(1.0, 1.2, 1.5));
-	lightContribution += sky;//vec3(0.16, 0.2, 0.28)
-	lightContribution += ind;//vec3(0.4, 0.28, 0.2)
+	lightContribution += sky; //vec3(0.768f, 0.8039f, 0.898f);//vec3(0.16, 0.2, 0.28);
+	lightContribution += ind; //vec3(0.1, 0.1, 0.1);
 	return vec3(albedo) * occ * lightContribution + vec3(ambient);
 }
 
