@@ -457,6 +457,20 @@ void DeferredRenderer::RecordDeferredCommandBuffer() {
         throw std::runtime_error("Failed to begin recording DEFERRED command buffer");
     }
 
+    // add camera barrier to prevent flickering issue with precision fix
+    VkBufferMemoryBarrier barrierCam;
+    barrierCam.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrierCam.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrierCam.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    barrierCam.srcQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Compute);
+    barrierCam.dstQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Graphics);
+    barrierCam.buffer = camera->GetBuffer();
+    barrierCam.offset = 0;
+    barrierCam.size = sizeof(CameraBufferObject);
+    barrierCam.pNext = NULL;
+
+    vkCmdPipelineBarrier(deferredCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, 1, &barrierCam, 0, nullptr);
+
     // TODO: change pipeline layout? DTODO
     // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
     vkCmdBindDescriptorSets(deferredCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
@@ -1655,6 +1669,20 @@ void DeferredRenderer::RecordCommandBuffers() {
 
         vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
 
+        // add camera barrier to prevent flickering issue with precision fix
+        VkBufferMemoryBarrier barrierCam;
+        barrierCam.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        barrierCam.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrierCam.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+        barrierCam.srcQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Compute);
+        barrierCam.dstQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Graphics);
+        barrierCam.buffer = camera->GetBuffer();
+        barrierCam.offset = 0;
+        barrierCam.size = sizeof(CameraBufferObject);
+        barrierCam.pNext = NULL;
+
+        vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, 1, &barrierCam, 0, nullptr);
+
         // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 2, 1, &timeDescriptorSet, 0, nullptr);
@@ -1712,6 +1740,11 @@ void DeferredRenderer::RecordCommandBuffers() {
 }
 
 void DeferredRenderer::Frame() {
+    // update camera only here so it doesn't update in the middle of rendering a frame
+    // this was causing issues with the precision fix
+    CameraBufferObject cbo = camera->GetCBO();
+    // need to use this to make it synchronous
+    BufferUtils::CopyDataToBuffer(device, computeCommandPool, (void *)&cbo, sizeof(CameraBufferObject), camera->GetBuffer());
 
     VkSubmitInfo computeSubmitInfo = {};
     computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

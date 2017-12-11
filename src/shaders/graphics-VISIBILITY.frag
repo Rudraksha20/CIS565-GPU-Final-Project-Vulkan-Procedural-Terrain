@@ -132,8 +132,8 @@ void main() {
 
     // This is essentially re-does the step in the compute shader where we move tiles
     // to be closer to the camera (this step was undone in the previous frag shader to preserve precision)
-    worldPos.x += floor(camera.cameraPos.x / tileDim) * tileDim;
-    worldPos.z += floor(camera.cameraPos.z / tileDim) * tileDim;
+    worldPos.x += floor((camera.cameraPos.x) / tileDim) * tileDim;
+    worldPos.z += floor((camera.cameraPos.z) / tileDim) * tileDim;
 	vec2 uv = worldPos.yw;
 
 	// Re-compute noise

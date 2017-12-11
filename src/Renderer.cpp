@@ -1319,6 +1319,9 @@ void Renderer::RecordCommandBuffers() {
 }
 
 void Renderer::Frame() {
+    // update camera only here so it doesn't update in the middle of rendering a frame
+    // this was causing issues with the precision fix
+    camera->UpdateBuffer();
 
     VkSubmitInfo computeSubmitInfo = {};
     computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
