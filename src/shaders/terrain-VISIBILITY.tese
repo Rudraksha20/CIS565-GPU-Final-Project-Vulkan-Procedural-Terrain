@@ -69,19 +69,8 @@ void main() {
 	fs_color = vec4(noise(worldPos.yy * 0.1 + worldPos.x * worldPos.z * 0.2), noise(worldPos.yy * worldPos.yy * worldPos.yy), noise(worldPos.yy * worldPos.x * worldPos.z * 0.1), 1.0);
 	fs_color.xyz *= 1.25;
 	fs_color = vec4(worldPos.yyy / 6.0, 1.0);
-	//fs_color.xyz *= vec3(0.188, 0.976, 0.267);
-	//fs_color.x = worldPos.x / 16.0;
-	//fs_color.xyz = vec3(tese_v1.x + tese_v1.y + tese_v1.z + tese_v1.w) / 1000.0 * 3.0;
-	//fs_color.yz = vec2(1.0);
-	/*
-	fs_color.xyz = vec3(0.0);
-	fs_color.x = tese_v1.x + (tese_v1.z - tese_v1.x) * u;
-	fs_color.x /= 250.0;
-	fs_color.z = tese_v1.y + (tese_v1.w - tese_v1.y) * v;
-	fs_color.z /= 250.0;
-	*/
-	fs_uv.x = u;//(0.49 <= u && u <= 0.5) ? 1.0 : 0.0;
-	fs_uv.y = v;//(0.24 <= v && v <= 0.26) ? 1.0 : 0.0;
+	fs_uv.x = u;
+	fs_uv.y = v;
 
 	// Calculating the normal
 	float deviation = 0.0001;

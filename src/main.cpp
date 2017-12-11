@@ -14,7 +14,7 @@
 #define VISIBILITY 2
 #define FORWARD 3
 
-#define RENDERER_TYPE FORWARD
+#define RENDERER_TYPE VISIBILITY
 
 #if RENDERER_TYPE != DEFERRED && RENDERER_TYPE != VISIBILITY && RENDERER_TYPE != FORWARD
 #error "Invalid renderer type specified in main.cpp"
@@ -258,13 +258,13 @@ int main() {
     );
     plane->SetTexture(grassImage);
     
-    Blades* blades = new Blades(device, transferCommandPool, planeDim);
+	TerrainGrids* terrainGrids = new TerrainGrids(device, transferCommandPool, planeDim);
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
     scene = new Scene(device);
     scene->AddModel(plane);
-    scene->AddBlades(blades);
+    scene->AddTerrainGrids(terrainGrids);
 
 #if RENDERER_TYPE == DEFERRED
 	renderer = new DeferredRenderer(device, swapChain, scene, camera);
@@ -292,7 +292,7 @@ int main() {
 
     delete scene;
     delete plane;
-    delete blades;
+    delete terrainGrids;
     delete camera;
     delete renderer;
     delete swapChain;

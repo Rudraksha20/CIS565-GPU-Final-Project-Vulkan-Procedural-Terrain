@@ -13,16 +13,16 @@ const std::vector<Model*>& Scene::GetModels() const {
     return models;
 }
 
-const std::vector<Blades*>& Scene::GetBlades() const {
-  return blades;
+const std::vector<TerrainGrids*>& Scene::GetTerrainGrids() const {
+  return terrainGrids;
 }
 
 void Scene::AddModel(Model* model) {
     models.push_back(model);
 }
 
-void Scene::AddBlades(Blades* blades) {
-  this->blades.push_back(blades);
+void Scene::AddTerrainGrids(TerrainGrids* terrainGrids) {
+  this->terrainGrids.push_back(terrainGrids);
 }
 
 void Scene::UpdateTime() {
